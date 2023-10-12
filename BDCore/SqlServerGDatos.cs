@@ -395,7 +395,7 @@ namespace CAPA_DATOS
                                     (filter.Values.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
                                     (filter.Values.Count > 1 ? AtributeName + " <= '" + filter.Values[1] + "' ) " : ") ");
                             }
-                            else if (atributeType == "int"
+                            else if (atributeType == "Int32"
                                                 || atributeType == "Double"
                                                 || atributeType == "Decimal"
                                                 || atributeType == "int")
