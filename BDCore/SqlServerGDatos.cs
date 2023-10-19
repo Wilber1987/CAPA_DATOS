@@ -14,14 +14,18 @@ namespace CAPA_DATOS
             this.ConexionString = ConexionString;
         }
 
-        protected override IDbConnection SQLMCon()
+        protected override IDbConnection SQLMCon
         {
-            if (this.MTConnection != null)
+            get
             {
-                return this.MTConnection;
+                if (this.MTConnection != null)
+                {
+                    return this.MTConnection;
+                }
+                return CrearConexion(ConexionString);
             }
-            return CrearConexion(ConexionString);
         }
+
         protected override IDbConnection CrearConexion(string ConexionString)
         {
             return new SqlConnection(ConexionString);

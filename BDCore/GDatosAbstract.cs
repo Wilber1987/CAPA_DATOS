@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Data;
+using System.Data.SqlClient;
 using System.Reflection;
 using Newtonsoft.Json;
 
@@ -7,13 +8,15 @@ namespace CAPA_DATOS
 {
     public abstract class GDatosAbstract
     {
-        protected abstract IDbConnection SQLMCon();
+        protected abstract IDbConnection SQLMCon { get; }
+
         protected String? ConexionString;
         protected IDbTransaction? MTransaccion;
         protected bool globalTransaction;
         protected IDbConnection? MTConnection;
         protected abstract IDbConnection CrearConexion(string cadena);
-        protected abstract IDbCommand ComandoSql(string comandoSql, IDbConnection connection);
+        protected abstract IDbCommand ComandoSql(string comandoSql,
+                                                 IDbConnection connection);
         protected abstract IDataAdapter CrearDataAdapterSql(string comandoSql, IDbConnection connection);
         protected abstract IDataAdapter CrearDataAdapterSql(IDbCommand comandoSql);
         protected abstract List<EntityProps> DescribeEntity(string entityName);
@@ -28,8 +31,8 @@ namespace CAPA_DATOS
         {
             try
             {
-                SQLMCon().Open();
-                SQLMCon().Close();
+                SQLMCon.Open();
+                SQLMCon.Close();
                 return true;
             }
             catch (Exception)
@@ -44,9 +47,9 @@ namespace CAPA_DATOS
                 return;
             }
             LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
-            MTConnection = SQLMCon();
-            SQLMCon().Open();
-            this.MTransaccion = SQLMCon().BeginTransaction();
+            MTConnection = SQLMCon;
+            SQLMCon.Open();
+            this.MTransaccion = SQLMCon.BeginTransaction();
         }
         public void CommitTransaction()
         {
@@ -56,7 +59,7 @@ namespace CAPA_DATOS
             }
             LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
             this.MTransaccion?.Commit();
-            SQLMCon().Close();
+            SQLMCon.Close();
             MTConnection = null;
         }
         public void RollBackTransaction()
@@ -67,23 +70,23 @@ namespace CAPA_DATOS
             }
             LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
             this.MTransaccion?.Rollback();
-            SQLMCon().Close();
+            SQLMCon.Close();
             MTConnection = null;
         }
         public void BeginGlobalTransaction()
         {
             this.globalTransaction = true;
             LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
-            MTConnection = SQLMCon();
-            SQLMCon().Open();
-            this.MTransaccion = SQLMCon().BeginTransaction();
+            MTConnection = SQLMCon;
+            SQLMCon.Open();
+            this.MTransaccion = SQLMCon.BeginTransaction();
         }
         public void CommitGlobalTransaction()
         {
             this.globalTransaction = false;
             LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
             this.MTransaccion?.Commit();
-            SQLMCon().Close();
+            SQLMCon.Close();
             MTConnection = null;
         }
         public void RollBackGlobalTransaction()
@@ -91,12 +94,12 @@ namespace CAPA_DATOS
             this.globalTransaction = false;
             LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
             this.MTransaccion?.Rollback();
-            SQLMCon().Close();
+            SQLMCon.Close();
             MTConnection = null;
         }
         public object ExcuteSqlQuery(string strQuery)
         {
-            var com = ComandoSql(strQuery, SQLMCon());
+            var com = ComandoSql(strQuery, SQLMCon);
             com.Transaction = this.MTransaccion;
             var scalar = com.ExecuteScalar();
             if (scalar == (object)DBNull.Value) return true;
@@ -105,7 +108,7 @@ namespace CAPA_DATOS
         public DataTable TraerDatosSQL(string queryString)
         {
             DataSet ObjDS = new DataSet();
-            var comando = ComandoSql(queryString, SQLMCon());
+            var comando = ComandoSql(queryString, SQLMCon);
             comando.Transaction = this.MTransaccion;
             CrearDataAdapterSql(comando).Fill(ObjDS);
             return ObjDS.Tables[0].Copy();
@@ -297,7 +300,7 @@ namespace CAPA_DATOS
             }
             catch (Exception)
             {
-                SQLMCon().Close();
+                SQLMCon.Close();
                 throw;
             }
         }
@@ -372,6 +375,35 @@ namespace CAPA_DATOS
 
             }
             return obj;
+        }
+        public List<T> TakeListWithProcedure<T>( Object Inst, List<Object> Params)
+        {
+            try
+            {
+                var conec = CrearConexion(ConexionString);
+                var Command = ComandoSql(Inst.GetType().Name, conec);
+                Command.CommandType = CommandType.StoredProcedure;
+                conec.Open();
+                SqlCommandBuilder.DeriveParameters((SqlCommand)Command);
+                conec.Close();
+                if (Params.Count != 0)
+                {
+                    int i = 0;
+                    foreach (var param in Params)
+                    {
+                        var p = (SqlParameter)Command.Parameters[i+1];
+                        p.Value = param;
+                        i++;
+                    }
+                }               
+                DataTable Table = TraerDatosSQL(Command);
+                List<T> ListD = ConvertDataTable<T>(Table, Inst);
+                return ListD;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         private static object GetValue(Object DefaultValue, Type type)

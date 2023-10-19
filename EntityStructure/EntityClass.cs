@@ -3,16 +3,23 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace CAPA_DATOS
 {
-    public abstract class EntityClass: TransactionalClass
+    public abstract class EntityClass : TransactionalClass
     {
+        public List<Object>? Parameters { get; set; }
         public List<FilterData>? filterData { get; set; }
-        public List<T> Get<T>()
+        public List<T> Get<T>(bool isProcedure = false)
         {
+            if (isProcedure)
+            {
+                var DataProcedure = SqlADOConexion.SQLM?.TakeListWithProcedure<T>(this, Parameters).Take<T>(100);
+                return DataProcedure.ToList() ?? new List<T>();
+            }
             var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true).Take<T>(100);
             return Data.ToList() ?? new List<T>();
         }
@@ -158,7 +165,7 @@ namespace CAPA_DATOS
                 SqlADOConexion.SQLM?.RollBackTransaction();
                 throw e;
             }
-        }      
+        }
     }
     public abstract class TransactionalClass
     {
