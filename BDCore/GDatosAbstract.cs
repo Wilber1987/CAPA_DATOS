@@ -316,8 +316,7 @@ namespace CAPA_DATOS
             }
             else
             {
-                return default(T);
-
+                return default;
             }
         }
 
@@ -331,6 +330,7 @@ namespace CAPA_DATOS
         //LECTURA Y CONVERSION DE DATOS       
         protected List<T> ConvertDataTable<T>(DataTable dt, object Inst)
         {
+            return dt.AsEnumerable().Select(row => ConvertRow<T>(Inst, row)).ToList();
             List<T> data = new List<T>();
             foreach (DataRow dr in dt.Rows)
             {
@@ -376,27 +376,11 @@ namespace CAPA_DATOS
             }
             return obj;
         }
-        public List<T> TakeListWithProcedure<T>( Object Inst, List<Object> Params)
+        public List<T> TakeListWithProcedure<T>(Object Inst, List<Object> Params)
         {
             try
             {
-                var conec = CrearConexion(ConexionString);
-                var Command = ComandoSql(Inst.GetType().Name, conec);
-                Command.CommandType = CommandType.StoredProcedure;
-                conec.Open();
-                SqlCommandBuilder.DeriveParameters((SqlCommand)Command);
-                conec.Close();
-                if (Params.Count != 0)
-                {
-                    int i = 0;
-                    foreach (var param in Params)
-                    {
-                        var p = (SqlParameter)Command.Parameters[i+1];
-                        p.Value = param;
-                        i++;
-                    }
-                }               
-                DataTable Table = TraerDatosSQL(Command);
+                DataTable Table = ExecuteProcedure(Inst, Params);
                 List<T> ListD = ConvertDataTable<T>(Table, Inst);
                 return ListD;
             }
@@ -404,6 +388,28 @@ namespace CAPA_DATOS
             {
                 throw;
             }
+        }
+
+        public DataTable ExecuteProcedure(object Inst, List<object> Params)
+        {
+            var conec = CrearConexion(ConexionString);
+            var Command = ComandoSql(Inst.GetType().Name, conec);
+            Command.CommandType = CommandType.StoredProcedure;
+            conec.Open();
+            SqlCommandBuilder.DeriveParameters((SqlCommand)Command);
+            conec.Close();
+            if (Params?.Count != 0)
+            {
+                int i = 0;
+                foreach (var param in Params)
+                {
+                    var p = (SqlParameter)Command.Parameters[i + 1];
+                    p.Value = param;
+                    i++;
+                }
+            }
+            DataTable Table = TraerDatosSQL(Command);
+            return Table;
         }
 
         private static object GetValue(Object DefaultValue, Type type)
