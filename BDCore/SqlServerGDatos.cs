@@ -59,7 +59,7 @@ namespace CAPA_DATOS
             }
             return entityProps;
         }
-        protected override string BuildInsertQueryByObject(object Inst)
+        protected override string? BuildInsertQueryByObject(object Inst)
         {
             string ColumnNames = "";
             string Values = "";
@@ -122,11 +122,15 @@ namespace CAPA_DATOS
             }
             ColumnNames = ColumnNames.TrimEnd(',');
             Values = Values.TrimEnd(',');
+            if (Values == "")
+            {
+                return null;
+            }
             string QUERY = "INSERT INTO " + entityProps[0].TABLE_SCHEMA + "." + Inst.GetType().Name + "(" + ColumnNames + ") VALUES(" + Values + ") SELECT SCOPE_IDENTITY()";
             LoggerServices.AddMessageInfo(QUERY);
             return QUERY;
         }
-        protected override string BuildUpdateQueryByObject(object Inst, string IdObject)
+        protected override string? BuildUpdateQueryByObject(object Inst, string IdObject)
         {
             string TableName = Inst.GetType().Name;
             string Values = "";
@@ -151,11 +155,15 @@ namespace CAPA_DATOS
                 else continue;
             }
             Values = Values.TrimEnd(',');
+            if (Values == "")
+            {
+                return null;
+            }
             string strQuery = "UPDATE  " + entityProps[0].TABLE_SCHEMA + "." + TableName + " SET " + Values + Conditions;
             LoggerServices.AddMessageInfo(strQuery);
             return strQuery;
         }
-        protected override string BuildUpdateQueryByObject(object Inst, string[] WhereProps)
+        protected override string? BuildUpdateQueryByObject(object Inst, string[] WhereProps)
         {
             string TableName = Inst.GetType().Name;
             string Values = "";
@@ -180,6 +188,10 @@ namespace CAPA_DATOS
                 else continue;
             }
             Values = Values.TrimEnd(',');
+            if (Values == "")
+            {
+                return null;
+            }
             string strQuery = "UPDATE  " + entityProps[0].TABLE_SCHEMA + "." + TableName + " SET " + Values + Conditions;
             LoggerServices.AddMessageInfo(strQuery);
             return strQuery;
