@@ -236,7 +236,6 @@ namespace CAPA_DATOS.Security
         [ManyToOne(TableName = "Security_Role", KeyColumn = "Id_Role", ForeignKeyColumn = "Id_Role")]
         public Security_Roles? Security_Role { get; set; }
 
+
     }
-
-
 }
