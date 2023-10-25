@@ -130,7 +130,7 @@ namespace CAPA_DATOS
             // SELECCIONAR LOS VALORES DE LAS LLAVES PRIMARIAS DE LOS MANYTOONE
             SetManyToOnePropiertys(entity, manyToOneProps);
             string? strQuery = BuildInsertQueryByObject(entity);
-            if (strQuery != null)
+            if (strQuery == null)
             {
                   return null;
             }            
@@ -302,6 +302,20 @@ namespace CAPA_DATOS
             {
                 LoggerServices.AddMessageInfo("-- > TakeList<T>(" + Inst.GetType().Name + ",fullEntity: " + fullEntity.ToString() + ", condition: " + CondSQL + ")");
                 DataTable Table = BuildTable(Inst, ref CondSQL, fullEntity, false);
+                List<T> ListD = ConvertDataTable<T>(Table, Inst);
+                return ListD;
+            }
+            catch (Exception)
+            {
+                SQLMCon.Close();
+                throw;
+            }
+        }
+        public List<T> TakeList<T>(Object Inst, string query)
+        {
+            try
+            {
+                DataTable Table = TraerDatosSQL(query);
                 List<T> ListD = ConvertDataTable<T>(Table, Inst);
                 return ListD;
             }
