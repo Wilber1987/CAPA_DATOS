@@ -130,7 +130,7 @@ namespace CAPA_DATOS
             // SELECCIONAR LOS VALORES DE LAS LLAVES PRIMARIAS DE LOS MANYTOONE
             SetManyToOnePropiertys(entity, manyToOneProps);
             string? strQuery = BuildInsertQueryByObject(entity);
-            if (strQuery != null)
+            if (strQuery == null)
             {
                   return null;
             }            

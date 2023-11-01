@@ -108,7 +108,7 @@ namespace CAPA_DATOS.Security
                     {
                         throw new Exception("Correo en uso");
                     }
-                    this.Save();
+                    Save();
                     new Tbl_Profile()
                     {
                         Nombres = this.Nombres,
@@ -116,7 +116,6 @@ namespace CAPA_DATOS.Security
                         Correo_institucional = this.Mail,
                         Foto = "\\Media\\profiles\\avatar.png",
                         IdUser = Id_User
-
                     }.Save();
                 }
                 else
@@ -237,7 +236,6 @@ namespace CAPA_DATOS.Security
         [ManyToOne(TableName = "Security_Role", KeyColumn = "Id_Role", ForeignKeyColumn = "Id_Role")]
         public Security_Roles? Security_Role { get; set; }
 
+
     }
-
-
 }
