@@ -311,11 +311,12 @@ namespace CAPA_DATOS
                 throw;
             }
         }
-        public List<T> TakeList<T>(Object Inst, string query)
+        public List<T> TakeList<T>(Object Inst, string queryString)
         {
             try
             {
-                DataTable Table = TraerDatosSQL(query);
+                LoggerServices.AddMessageInfo("-- > TakeList<T>(" + Inst.GetType().Name );
+                DataTable Table = TraerDatosSQL(queryString);
                 List<T> ListD = ConvertDataTable<T>(Table, Inst);
                 return ListD;
             }
