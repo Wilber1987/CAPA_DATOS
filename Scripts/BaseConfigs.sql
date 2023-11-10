@@ -1,10 +1,10 @@
--- HELPDESK.dbo.LogError definition
+-- dbo.LogError definition
 
 -- Drop table
 
--- DROP TABLE HELPDESK.dbo.LogError;
+-- DROP TABLE dbo.LogError;
 
-CREATE TABLE HELPDESK.dbo.LogError (
+CREATE TABLE dbo.LogError (
 	Id_Log int IDENTITY(1,1) NOT NULL,
 	Fecha datetime NULL,
 	body nvarchar(MAX) COLLATE Modern_Spanish_CI_AS NULL,
@@ -16,13 +16,13 @@ CREATE TABLE HELPDESK.dbo.LogError (
 -- DROP SCHEMA [security];
 
 CREATE SCHEMA [security];
--- HELPDESK.[security].Security_Permissions definition
+-- [security].Security_Permissions definition
 
 -- Drop table
 
--- DROP TABLE HELPDESK.[security].Security_Permissions;
+-- DROP TABLE [security].Security_Permissions;
 
-CREATE TABLE HELPDESK.[security].Security_Permissions (
+CREATE TABLE [security].Security_Permissions (
 	Id_Permission int IDENTITY(1,1) NOT NULL,
 	Descripcion nvarchar(100) COLLATE Modern_Spanish_CI_AS NULL,
 	Estado nvarchar(50) COLLATE Modern_Spanish_CI_AS NULL,
@@ -30,13 +30,13 @@ CREATE TABLE HELPDESK.[security].Security_Permissions (
 );
 
 
--- HELPDESK.[security].Security_Roles definition
+-- [security].Security_Roles definition
 
 -- Drop table
 
--- DROP TABLE HELPDESK.[security].Security_Roles;
+-- DROP TABLE [security].Security_Roles;
 
-CREATE TABLE HELPDESK.[security].Security_Roles (
+CREATE TABLE [security].Security_Roles (
 	Id_Role int IDENTITY(1,1) NOT NULL,
 	Descripcion nvarchar(150) COLLATE Modern_Spanish_CI_AS NULL,
 	Estado nvarchar(50) COLLATE Modern_Spanish_CI_AS NULL,
@@ -44,13 +44,13 @@ CREATE TABLE HELPDESK.[security].Security_Roles (
 );
 
 
--- HELPDESK.[security].Security_Users definition
+-- [security].Security_Users definition
 
 -- Drop table
 
--- DROP TABLE HELPDESK.[security].Security_Users;
+-- DROP TABLE [security].Security_Users;
 
-CREATE TABLE HELPDESK.[security].Security_Users (
+CREATE TABLE [security].Security_Users (
 	Id_User int IDENTITY(1,1) NOT NULL,
 	Nombres nvarchar(150) COLLATE Modern_Spanish_CI_AS NULL,
 	Estado nvarchar(50) COLLATE Modern_Spanish_CI_AS NULL,
@@ -64,56 +64,56 @@ CREATE TABLE HELPDESK.[security].Security_Users (
 );
 
 
--- HELPDESK.[security].Security_Permissions_Roles definition
+-- [security].Security_Permissions_Roles definition
 
 -- Drop table
 
--- DROP TABLE HELPDESK.[security].Security_Permissions_Roles;
+-- DROP TABLE [security].Security_Permissions_Roles;
 
-CREATE TABLE HELPDESK.[security].Security_Permissions_Roles (
+CREATE TABLE [security].Security_Permissions_Roles (
 	Id_Role int NOT NULL,
 	Id_Permission int NOT NULL,
 	Estado nvarchar(50) COLLATE Modern_Spanish_CI_AS NULL,
 	CONSTRAINT PK_Security_Permissions_Roles PRIMARY KEY (Id_Role,Id_Permission),
-	CONSTRAINT FK_Security_Permissions_Roles_Security_Permissions FOREIGN KEY (Id_Permission) REFERENCES HELPDESK.[security].Security_Permissions(Id_Permission),
-	CONSTRAINT FK_Security_Permissions_Roles_Security_Roles FOREIGN KEY (Id_Role) REFERENCES HELPDESK.[security].Security_Roles(Id_Role)
+	CONSTRAINT FK_Security_Permissions_Roles_Security_Permissions FOREIGN KEY (Id_Permission) REFERENCES [security].Security_Permissions(Id_Permission),
+	CONSTRAINT FK_Security_Permissions_Roles_Security_Roles FOREIGN KEY (Id_Role) REFERENCES [security].Security_Roles(Id_Role)
 );
 
 
--- HELPDESK.[security].Security_Users_Roles definition
+-- [security].Security_Users_Roles definition
 
 -- Drop table
 
--- DROP TABLE HELPDESK.[security].Security_Users_Roles;
+-- DROP TABLE [security].Security_Users_Roles;
 
-CREATE TABLE HELPDESK.[security].Security_Users_Roles (
+CREATE TABLE [security].Security_Users_Roles (
 	Id_Role int NOT NULL,
 	Id_User int NOT NULL,
 	Estado nvarchar(50) COLLATE Modern_Spanish_CI_AS NULL,
 	CONSTRAINT PK_Security_Users_Roles PRIMARY KEY (Id_Role,Id_User),
-	CONSTRAINT FK_Security_Users_Roles_Security_Roles FOREIGN KEY (Id_Role) REFERENCES HELPDESK.[security].Security_Roles(Id_Role),
-	CONSTRAINT FK_Security_Users_Roles_Security_Users FOREIGN KEY (Id_User) REFERENCES HELPDESK.[security].Security_Users(Id_User)
+	CONSTRAINT FK_Security_Users_Roles_Security_Roles FOREIGN KEY (Id_Role) REFERENCES [security].Security_Roles(Id_Role),
+	CONSTRAINT FK_Security_Users_Roles_Security_Users FOREIGN KEY (Id_User) REFERENCES [security].Security_Users(Id_User)
 );
 
--- HELPDESK.helpdesk.Cat_Paises definition
+-- Cat_Paises definition
 
 -- Drop table
 
--- DROP TABLE HELPDESK.helpdesk.Cat_Paises;
+-- DROP TABLE Cat_Paises;
 
-CREATE TABLE HELPDESK.helpdesk.Cat_Paises (
+CREATE TABLE security.Cat_Paises (
 	Id_Pais int IDENTITY(1,1) NOT NULL,
 	Estado nvarchar(50) COLLATE Modern_Spanish_CI_AS NULL,
 	Descripcion nvarchar(50) COLLATE Modern_Spanish_CI_AS NULL,
 	CONSTRAINT PK_Cat_Nacionalidad PRIMARY KEY (Id_Pais)
 );
--- HELPDESK.helpdesk.Tbl_Profile definition
+-- Tbl_Profile definition
 
 -- Drop table
 
--- DROP TABLE HELPDESK.helpdesk.Tbl_Profile;
+-- DROP TABLE Tbl_Profile;
 
-CREATE TABLE HELPDESK.helpdesk.Tbl_Profile (
+CREATE TABLE security.Tbl_Profile (
 	Id_Perfil int IDENTITY(1,1) NOT NULL,
 	Nombres nvarchar(50) COLLATE Modern_Spanish_CI_AS NULL,
 	Apellidos nvarchar(50) COLLATE Modern_Spanish_CI_AS NULL,
@@ -129,7 +129,7 @@ CREATE TABLE HELPDESK.helpdesk.Tbl_Profile (
 );
 
 
--- HELPDESK.helpdesk.Tbl_Profile foreign keys
+-- Tbl_Profile foreign keys
 
-ALTER TABLE HELPDESK.helpdesk.Tbl_Profile ADD CONSTRAINT FK_Tbl_InvestigatorProfile_Cat_Nacionalidad FOREIGN KEY (Id_Pais_Origen) REFERENCES HELPDESK.helpdesk.Cat_Paises(Id_Pais);
-ALTER TABLE HELPDESK.helpdesk.Tbl_Profile ADD CONSTRAINT FK_Tbl_InvestigatorProfile_Security_Users FOREIGN KEY (IdUser) REFERENCES HELPDESK.[security].Security_Users(Id_User);
+ALTER TABLE Tbl_Profile ADD CONSTRAINT FK_Tbl_InvestigatorProfile_Cat_Nacionalidad FOREIGN KEY (Id_Pais_Origen) REFERENCES security.Cat_Paises(Id_Pais);
+ALTER TABLE Tbl_Profile ADD CONSTRAINT FK_Tbl_InvestigatorProfile_Security_Users FOREIGN KEY (IdUser) REFERENCES [security].Security_Users(Id_User);
