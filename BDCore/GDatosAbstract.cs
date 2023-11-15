@@ -71,7 +71,7 @@ namespace CAPA_DATOS
             MTConnection = null;
         }
         public void BeginGlobalTransaction()
-        {
+        {           
             this.globalTransaction = true;
             LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
             MTConnection = SQLMCon();
