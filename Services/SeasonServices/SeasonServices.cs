@@ -14,6 +14,11 @@ namespace CAPA_DATOS.Services
         public static List<SeassonData> SeassonDatas = new List<SeassonData>();
         public static void Set(string key, Object value, string identfy)
         {
+            var find = SeassonDatas.Find(x => x.KeyName.Equals(key) && x.idetify.Equals(identfy));
+            if (find != null)
+            {
+                SeassonDatas.Remove(find);
+            }
             SeassonDatas.Add(new SeassonData()
             {
                 KeyName = key,

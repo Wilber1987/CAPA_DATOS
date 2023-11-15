@@ -2,6 +2,7 @@
 using System.Data.SqlClient;
 using System.Reflection;
 using System.Text.Json;
+using CAPA_DATOS;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -14,14 +15,18 @@ namespace CAPA_DATOS
             this.ConexionString = ConexionString;
         }
 
-        protected override IDbConnection SQLMCon()
+        protected override IDbConnection SQLMCon
         {
-            if (this.MTConnection != null)
+            get
             {
-                return this.MTConnection;
+                if (this.MTConnection != null)
+                {
+                    return this.MTConnection;
+                }
+                return CrearConexion(ConexionString);
             }
-            return CrearConexion(ConexionString);
         }
+
         protected override IDbConnection CrearConexion(string ConexionString)
         {
             return new SqlConnection(ConexionString);
@@ -55,7 +60,7 @@ namespace CAPA_DATOS
             }
             return entityProps;
         }
-        protected override string BuildInsertQueryByObject(object Inst)
+        protected override string? BuildInsertQueryByObject(object Inst)
         {
             string ColumnNames = "";
             string Values = "";
@@ -118,11 +123,15 @@ namespace CAPA_DATOS
             }
             ColumnNames = ColumnNames.TrimEnd(',');
             Values = Values.TrimEnd(',');
+            if (Values == "")
+            {
+                return null;
+            }
             string QUERY = "INSERT INTO " + entityProps[0].TABLE_SCHEMA + "." + Inst.GetType().Name + "(" + ColumnNames + ") VALUES(" + Values + ") SELECT SCOPE_IDENTITY()";
             LoggerServices.AddMessageInfo(QUERY);
             return QUERY;
         }
-        protected override string BuildUpdateQueryByObject(object Inst, string IdObject)
+        protected override string? BuildUpdateQueryByObject(object Inst, string IdObject)
         {
             string TableName = Inst.GetType().Name;
             string Values = "";
@@ -147,11 +156,15 @@ namespace CAPA_DATOS
                 else continue;
             }
             Values = Values.TrimEnd(',');
+            if (Values == "")
+            {
+                return null;
+            }
             string strQuery = "UPDATE  " + entityProps[0].TABLE_SCHEMA + "." + TableName + " SET " + Values + Conditions;
             LoggerServices.AddMessageInfo(strQuery);
             return strQuery;
         }
-        protected override string BuildUpdateQueryByObject(object Inst, string[] WhereProps)
+        protected override string? BuildUpdateQueryByObject(object Inst, string[] WhereProps)
         {
             string TableName = Inst.GetType().Name;
             string Values = "";
@@ -176,6 +189,10 @@ namespace CAPA_DATOS
                 else continue;
             }
             Values = Values.TrimEnd(',');
+            if (Values == "")
+            {
+                return null;
+            }
             string strQuery = "UPDATE  " + entityProps[0].TABLE_SCHEMA + "." + TableName + " SET " + Values + Conditions;
             LoggerServices.AddMessageInfo(strQuery);
             return strQuery;
@@ -278,7 +295,7 @@ namespace CAPA_DATOS
             }
             Columns = Columns.TrimEnd(',');
 
-            string queryString = "SELECT TOP 100 " + Columns
+            string queryString = "SELECT " + Columns
                 + " FROM " + entityProps[0].TABLE_SCHEMA + "." + Inst.GetType().Name + " as " + tableAlias
                 + CondicionString + CondSQL;
 
@@ -395,7 +412,7 @@ namespace CAPA_DATOS
                                     (filter.Values.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
                                     (filter.Values.Count > 1 ? AtributeName + " <= '" + filter.Values[1] + "' ) " : ") ");
                             }
-                            else if (atributeType == "int"
+                            else if (atributeType == "Int32"
                                                 || atributeType == "Double"
                                                 || atributeType == "Decimal"
                                                 || atributeType == "int")

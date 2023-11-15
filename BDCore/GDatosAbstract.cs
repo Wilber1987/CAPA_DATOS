@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Data;
+using System.Data.SqlClient;
 using System.Reflection;
 using Newtonsoft.Json;
 
@@ -7,29 +8,31 @@ namespace CAPA_DATOS
 {
     public abstract class GDatosAbstract
     {
-        protected abstract IDbConnection SQLMCon();
+        protected abstract IDbConnection SQLMCon { get; }
+
         protected String? ConexionString;
         protected IDbTransaction? MTransaccion;
         protected bool globalTransaction;
         protected IDbConnection? MTConnection;
         protected abstract IDbConnection CrearConexion(string cadena);
-        protected abstract IDbCommand ComandoSql(string comandoSql, IDbConnection connection);
+        protected abstract IDbCommand ComandoSql(string comandoSql,
+                                                 IDbConnection connection);
         protected abstract IDataAdapter CrearDataAdapterSql(string comandoSql, IDbConnection connection);
         protected abstract IDataAdapter CrearDataAdapterSql(IDbCommand comandoSql);
         protected abstract List<EntityProps> DescribeEntity(string entityName);
         protected abstract string BuildSelectQuery(object Inst, string CondSQL,
             bool fullEntity = true, bool isFind = true);
-        protected abstract string BuildInsertQueryByObject(object Inst);
-        protected abstract string BuildUpdateQueryByObject(object Inst, string IdObject);
-        protected abstract string BuildUpdateQueryByObject(object Inst, string[] WhereProps);
+        protected abstract string? BuildInsertQueryByObject(object Inst);
+        protected abstract string? BuildUpdateQueryByObject(object Inst, string IdObject);
+        protected abstract string? BuildUpdateQueryByObject(object Inst, string[] WhereProps);
         protected abstract string BuildDeleteQuery(object Inst);
         //ADO.NET METHODS
         public bool TestConnection()
         {
             try
             {
-                SQLMCon().Open();
-                SQLMCon().Close();
+                SQLMCon.Open();
+                SQLMCon.Close();
                 return true;
             }
             catch (Exception)
@@ -44,9 +47,9 @@ namespace CAPA_DATOS
                 return;
             }
             LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
-            MTConnection = SQLMCon();
-            SQLMCon().Open();
-            this.MTransaccion = SQLMCon().BeginTransaction();
+            MTConnection = SQLMCon;
+            SQLMCon.Open();
+            this.MTransaccion = SQLMCon.BeginTransaction();
         }
         public void CommitTransaction()
         {
@@ -56,7 +59,7 @@ namespace CAPA_DATOS
             }
             LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
             this.MTransaccion?.Commit();
-            SQLMCon().Close();
+            SQLMCon.Close();
             MTConnection = null;
         }
         public void RollBackTransaction()
@@ -67,23 +70,23 @@ namespace CAPA_DATOS
             }
             LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
             this.MTransaccion?.Rollback();
-            SQLMCon().Close();
+            SQLMCon.Close();
             MTConnection = null;
         }
         public void BeginGlobalTransaction()
         {           
             this.globalTransaction = true;
             LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
-            MTConnection = SQLMCon();
-            SQLMCon().Open();
-            this.MTransaccion = SQLMCon().BeginTransaction();
+            MTConnection = SQLMCon;
+            SQLMCon.Open();
+            this.MTransaccion = SQLMCon.BeginTransaction();
         }
         public void CommitGlobalTransaction()
         {
             this.globalTransaction = false;
             LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
             this.MTransaccion?.Commit();
-            SQLMCon().Close();
+            SQLMCon.Close();
             MTConnection = null;
         }
         public void RollBackGlobalTransaction()
@@ -91,12 +94,12 @@ namespace CAPA_DATOS
             this.globalTransaction = false;
             LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
             this.MTransaccion?.Rollback();
-            SQLMCon().Close();
+            SQLMCon.Close();
             MTConnection = null;
         }
-        public object ExcuteSqlQuery(string strQuery)
+        public object ExcuteSqlQuery(string? strQuery)
         {
-            var com = ComandoSql(strQuery, SQLMCon());
+            var com = ComandoSql(strQuery, SQLMCon);
             com.Transaction = this.MTransaccion;
             var scalar = com.ExecuteScalar();
             if (scalar == (object)DBNull.Value) return true;
@@ -105,7 +108,7 @@ namespace CAPA_DATOS
         public DataTable TraerDatosSQL(string queryString)
         {
             DataSet ObjDS = new DataSet();
-            var comando = ComandoSql(queryString, SQLMCon());
+            var comando = ComandoSql(queryString, SQLMCon);
             comando.Transaction = this.MTransaccion;
             CrearDataAdapterSql(comando).Fill(ObjDS);
             return ObjDS.Tables[0].Copy();
@@ -118,7 +121,7 @@ namespace CAPA_DATOS
             return ObjDS.Tables[0].Copy();
         }
         //ORM INSERT, DELETE, UPDATES METHODS
-        public object InsertObject(Object entity)
+        public object? InsertObject(Object entity)
         {
             LoggerServices.AddMessageInfo("-- >  InsertObject(" + entity.GetType().Name + ")");
             List<PropertyInfo> entityProps = entity.GetType().GetProperties().ToList();
@@ -126,7 +129,11 @@ namespace CAPA_DATOS
             List<PropertyInfo> manyToOneProps = entityProps.Where(p => Attribute.GetCustomAttribute(p, typeof(ManyToOne)) != null).ToList();
             // SELECCIONAR LOS VALORES DE LAS LLAVES PRIMARIAS DE LOS MANYTOONE
             SetManyToOnePropiertys(entity, manyToOneProps);
-            string strQuery = BuildInsertQueryByObject(entity);
+            string? strQuery = BuildInsertQueryByObject(entity);
+            if (strQuery == null)
+            {
+                  return null;
+            }            
             object idGenerated = ExcuteSqlQuery(strQuery);
 
             if (pimaryKeyPropiertys.Count == 1)
@@ -227,7 +234,7 @@ namespace CAPA_DATOS
 
         }
 
-        public object UpdateObject(Object entity, string[] IdObject)
+        public object? UpdateObject(Object entity, string[] IdObject)
         {
             LoggerServices.AddMessageInfo("-- > UpdateObject(Object Inst, string[] IdObject)");
             List<PropertyInfo> entityProps = entity.GetType().GetProperties().ToList();
@@ -235,7 +242,7 @@ namespace CAPA_DATOS
             List<PropertyInfo> manyToOneProps = entityProps.Where(p => Attribute.GetCustomAttribute(p, typeof(ManyToOne)) != null).ToList();
             // SELECCIONAR LOS VALORES DE LAS LLAVES PRIMARIAS DE LOS MANYTOONE
             SetManyToOnePropiertys(entity, manyToOneProps);
-            string strQuery = BuildUpdateQueryByObject(entity, IdObject);
+            string? strQuery = BuildUpdateQueryByObject(entity, IdObject);
 
             List<PropertyInfo> oneToManyPropiertys = entityProps.Where(p =>
                 Attribute.GetCustomAttribute(p, typeof(OneToMany)) != null).ToList();
@@ -263,7 +270,10 @@ namespace CAPA_DATOS
                 }
             }
 
-            ExcuteSqlQuery(strQuery);
+            if (strQuery != null)
+            {
+                  ExcuteSqlQuery(strQuery);
+            }
             return entity;
         }
         public object UpdateObject(Object Inst, string IdObject)
@@ -275,13 +285,13 @@ namespace CAPA_DATOS
                     + IdObject + " en la instancia "
                     + Inst.GetType().Name + " esta en nulo y no es posible actualizar");
             }
-            string strQuery = BuildUpdateQueryByObject(Inst, IdObject);
+            string? strQuery = BuildUpdateQueryByObject(Inst, IdObject);
             return ExcuteSqlQuery(strQuery);
         }
         public object Delete(Object Inst)
         {
             LoggerServices.AddMessageInfo("-- > Delete(Object Inst)");
-            string strQuery = BuildDeleteQuery(Inst);
+            string? strQuery = BuildDeleteQuery(Inst);
             return ExcuteSqlQuery(strQuery);
         }
 
@@ -297,7 +307,22 @@ namespace CAPA_DATOS
             }
             catch (Exception)
             {
-                SQLMCon().Close();
+                SQLMCon.Close();
+                throw;
+            }
+        }
+        public List<T> TakeList<T>(Object Inst, string queryString)
+        {
+            try
+            {
+                LoggerServices.AddMessageInfo("-- > TakeList<T>(" + Inst.GetType().Name );
+                DataTable Table = TraerDatosSQL(queryString);
+                List<T> ListD = ConvertDataTable<T>(Table, Inst);
+                return ListD;
+            }
+            catch (Exception)
+            {
+                SQLMCon.Close();
                 throw;
             }
         }
@@ -313,8 +338,7 @@ namespace CAPA_DATOS
             }
             else
             {
-                return default(T);
-
+                return default;
             }
         }
 
@@ -328,13 +352,7 @@ namespace CAPA_DATOS
         //LECTURA Y CONVERSION DE DATOS       
         protected List<T> ConvertDataTable<T>(DataTable dt, object Inst)
         {
-            List<T> data = new List<T>();
-            foreach (DataRow dr in dt.Rows)
-            {
-                T obj = ConvertRow<T>(Inst, dr);
-                data.Add(obj);
-            }
-            return data;
+            return dt.AsEnumerable().Select(row => ConvertRow<T>(Inst, row)).ToList();           
         }
         private static T ConvertRow<T>(object Inst, DataRow dr)
         {
@@ -372,6 +390,41 @@ namespace CAPA_DATOS
 
             }
             return obj;
+        }
+        public List<T> TakeListWithProcedure<T>(Object Inst, List<Object> Params)
+        {
+            try
+            {
+                DataTable Table = ExecuteProcedure(Inst, Params);
+                List<T> ListD = ConvertDataTable<T>(Table, Inst);
+                return ListD;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public DataTable ExecuteProcedure(object Inst, List<object> Params)
+        {
+            var conec = CrearConexion(ConexionString);
+            var Command = ComandoSql(Inst.GetType().Name, conec);
+            Command.CommandType = CommandType.StoredProcedure;
+            conec.Open();
+            SqlCommandBuilder.DeriveParameters((SqlCommand)Command);
+            conec.Close();
+            if (Params?.Count != 0)
+            {
+                int i = 0;
+                foreach (var param in Params)
+                {
+                    var p = (SqlParameter)Command.Parameters[i + 1];
+                    p.Value = param;
+                    i++;
+                }
+            }
+            DataTable Table = TraerDatosSQL(Command);
+            return Table;
         }
 
         private static object GetValue(Object DefaultValue, Type type)

@@ -69,6 +69,7 @@ namespace CAPA_DATOS
             {
                 Anonimo = false;
                 //return createConexion(".", "sa",  "zaxscd");
+                //return createConexion(".", "sa",  "Helpdesk2023");
                 return createConexion(".\\SQLEXPRESS", "sa", "123");
             }
             catch (Exception)

@@ -4,14 +4,14 @@ namespace CAPA_DATOS.Services;
 
 public static class NumberUtility
 {
-    public static string NumeroALetras(double? numberAsString)
+    public static string NumeroALetras(double? numberAsString, string currency = "")
     {
         //creamos el objeto
         Moneda oMoneda = new Moneda();
         //primer parametro es la cantidad en string
         //segundo parametro es si queremos que sea mayuscula
         //tercer parametro la moneda
-        return oMoneda.Convertir(Math.Round((decimal)numberAsString, 2).ToString(), false, "con");
+        return oMoneda.Convertir(Math.Round((decimal)numberAsString, 2).ToString(), false, currency);
 
     }
     public static string NumeroALetras(this decimal numberAsString)
@@ -144,14 +144,14 @@ public class Moneda
 
             string MN = " M.N.";
             if (moneda != "PESOS")
-                MN = "";
+                MN = moneda;
 
             //de da formato al numero decimal
             //parte_decimal = moneda + " " + Num[1] + "/100" + MN;
             //se convierte el numero a literal
             literal = buildLiteral(Num[0]);
             parte_decimal = buildLiteral(Num[1]);
-            parte_decimal = $" con {parte_decimal} centavos";
+            parte_decimal = $" {moneda} con {parte_decimal} centavos";
             //devuelve el resultado en mayusculas o minusculas
             if (mayusculas)
             {
@@ -264,7 +264,7 @@ public class Moneda
         if (int.Parse(m) > 0)
         {
             n = getCentenas(m);
-            return n + "mil " + getCentenas(c);
+            return n + " mil " + getCentenas(c);
         }
         else
         {
