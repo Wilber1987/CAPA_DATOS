@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using AE.Net.Mail;
 using CAPA_DATOS;
+using MimeKit;
 
 namespace CAPA_DATOS.Services
 {
@@ -28,7 +29,7 @@ namespace CAPA_DATOS.Services
                         {
                             Value = Attach.Value,
                         },
-                        message = "Formato incorrecto, bse64 invalido"
+                        message = "Formato incorrecto, base64 invalido"
                     };
                 }
 
@@ -72,7 +73,7 @@ namespace CAPA_DATOS.Services
 
         }
 
-        public static ModelFiles ReceiveFiles(string path, Attachment Attach)
+        public static ModelFiles ReceiveFiles(string path, MimeEntity attachment)
         {
             string Carpeta = @"\wwwroot\Media\" + path;
             string Ruta = Directory.GetCurrentDirectory() + Carpeta;
@@ -80,20 +81,33 @@ namespace CAPA_DATOS.Services
             {
                 Directory.CreateDirectory(Ruta);
             }
-            string FileType = GetFileType(Attach.ContentType);
+
+            var fileName = attachment.ContentDisposition?.FileName ?? attachment.ContentType.Name;
+
+            byte[] datos = ObtenerDatosMimeEntity(attachment);           
+            string FileType = GetFileType(attachment.ContentType.MediaType);
+
             Guid Uuid = Guid.NewGuid();
             string FileName = Uuid.ToString() + FileType;
             string FileRoute = Ruta + FileName;
-            File.WriteAllBytes(FileRoute, Attach.GetData());
+            File.WriteAllBytes(FileRoute, datos);
             string RutaRelativa = Path.GetRelativePath(Directory.GetCurrentDirectory(), FileRoute);
 
             ModelFiles AttachFiles = new ModelFiles
             {
-                Name = Attach.Filename,
+                Name = attachment.ContentType.Name,
                 Value = RutaRelativa,
                 Type = FileType
             };
             return AttachFiles;
+        }
+        static byte[] ObtenerDatosMimeEntity(MimeEntity mimeEntity)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                mimeEntity.WriteTo(stream);
+                return stream.ToArray();
+            }
         }
 
 

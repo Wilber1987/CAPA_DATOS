@@ -2,120 +2,165 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
-using AE.Net.Mail;
 using CAPA_DATOS;
+using MailKit.Net.Imap;
+using OAuthApplication;
+using System.Net.Http.Headers;
+using MailKit.Security;
+using MailKit;
+using MimeKit;
+using MailKit.Search;
 
-namespace CAPA_DATOS.Services
+namespace CAPA_DATOS.Services;
+public class MailConfig
 {
-    public class MailConfig
-    {
-        public string? HOST { get; set; }
-        public string? USERNAME { get; set; }
-        public string? PASSWORD { get; set; }
-    }
-    public class IMAPServices
-    {
-        //const string USERNAME = "wdevexp@outlook.com";
-        //const string PASSWORD = "%WtestDev2023%";
-        //const string USERNAME = "amejia@ximtechnology.onmicrosoft.com";
-        //const string PASSWORD = "%3e2w1qazsX";
-        const string HOST = "outlook.office365.com";
-        const int PORT = 993;
-        public ImapClient GetClient(MailConfig config)
-        {
-            return new ImapClient(config.HOST, config.USERNAME, config.PASSWORD, AuthMethods.Login, PORT, true);
-        }
-        // public static Pop3Client GetExchangeEWSClient()
-        // {
-        //     const string HOST = "outlook.office365.com";
-        //     const int PORT = 995;
-        //     //const string username = "amejia@ximtechnology.onmicrosoft.com";
-        //     //const string password = "%3e2w1qazsX";
-
-        //     const string username = "wilberj1987@hotmail.com";
-        //     const string password = "%Wmatus$1987%";
-        //     Pop3Client pop3Client = new Pop3Client();
-        //     pop3Client.Connect(HOST, PORT, true);
-        //     pop3Client.Authenticate(username, password);
-        //     return pop3Client;
-        // }
-        // public object getData()
-        // {
-        //     var client = GetExchangeEWSClient();
-        //     List<Message> messages = new();
-        //     int i = client.GetMessageCount();
-        //     while (i > 1)
-        //     {
-        //         messages.Add(client.GetMessage(i));
-        //         i--;
-        //     }
-        //     return messages.Select(m => m.Headers.Subject + " - "+ m.MessagePart.ToString() ).ToList();
-        // }
-        public object getData()
-        {
-            // List<string> ids = new List<string>();
-            // List<MailMessage> mails = new List<MailMessage>();
-
-            // using (var imap = new ImapClient(HOST, USERNAME, PASSWORD, AuthMethods.Login, PORT, true))
-            // {
-            //     imap.SelectMailbox("INBOX");
-            //     var MailMessage = imap.SearchMessages(SearchCondition.Unseen()).Select(m => m.Value).ToList();
-            //     foreach (var mail in MailMessage)
-            //     {
-            //         mails.Add(mail);
-            //         ids.Add(mail.Uid + " - " + mail.Subject + " - " + mail.Body);
-            //         imap.MoveMessage(mail.Uid, "READY");
-            //     }
-            //     imap.Expunge();
-            // for (int i = 0; i < msgs.Length; i++)
-            // {
-            //     Lazy<MailMessage> msgId = msgs[i];
-            //     ids.Add(msgId.Value.Subject + " - " +msgId.Value.Body);
-            //     mails.Add(msgId.Value);
-            // }
-
-            // foreach (string id in ids)
-            // {
-            //     mails.Add(imap.GetMessage(id, headersonly: false));
-            // }
-            //}
-
-            // foreach (var msg in mails)
-            // {
-            //     foreach (var att in msg.Attachments)
-            //     {
-            //         string fName;
-            //         fName = att.Filename;
-            //     }
-            // }
-            return true; //ids;
-        }
-        public object GetData2()
-        {
-            // Datos de la cuenta de correo
-            string server = "outlook.office365.com";
-            int port = 993; // Puerto seguro IMAPS
-            string username = "amejia@ximtechnology.onmicrosoft.com";
-            string password = "%3e2w1qazsX";
-
-            using (var client = new MailKit.Net.Imap.ImapClient())
-            {
-                // Configurar la conexión
-                client.Connect(server, port, MailKit.Security.SecureSocketOptions.StartTls);
-
-                // Autenticación
-                client.Authenticate(username, password);
-
-
-                // Realizar acciones con el cliente IMAP
-                // Por ejemplo, puedes listar carpetas, leer correos, etc.
-
-                // Desconectar
-                client.Disconnect(true);
-            }
-            return true;
-        }
-    }
-
-
+    public string? HOST { get; set; }
+    public string? USERNAME { get; set; }
+    public string? PASSWORD { get; set; }
+    public AutenticationTypeEnum? AutenticationType { get; set; }
+    //AUTH 2.0
+    public string? TENAT { get; set; }
+    public string? CLIENT { get; set; }
+    public string? OBJECTID { get; set; }
+    public string? CLIENT_SECRET { get; set; }
 }
+public enum AutenticationTypeEnum
+{
+    AUTH2, BASIC
+}
+public class IMAPServices
+{
+    const int port = 993;
+    private string? tenant_id = "8097a003-1162-40cb-ba74-f198eda4d6e9";
+    private string? client_id = "b3161d3c-f437-47b7-aa3b-6a0ed3532f5b";
+    private string? client_secret = "RrH8Q~O6hHqDetZWbNOYLQrdRgn.WupFPlSpBatO";
+    private string? mail = "wilbermatusgonzalez@wexpdev.onmicrosoft.com";
+    private string? password = "outlook.office365.com";
+    private string? host = "outlook.office365.com";
+    private AutenticationTypeEnum? AutenticationType = AutenticationTypeEnum.AUTH2;
+
+
+
+    public HttpClient ApiClient { get; set; } = new HttpClient();
+    public void InitializeClient()
+    {
+        if (ApiClient == null)
+            ApiClient = new HttpClient();
+
+        ApiClient.DefaultRequestHeaders.Accept.Clear();
+        ApiClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    }
+
+    public async Task<AccessTokenModel> GetAccessTokenAsync()
+    {
+        string url = $"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token";
+
+        var data = new Dictionary<string, string>
+            {
+                {"grant_type", "client_credentials"},
+                {"scope", "https://outlook.office365.com/.default"},
+                {"client_id",  client_id},
+                {"client_secret", client_secret}
+            };
+
+        using HttpClient client = new();
+        var response = await client.PostAsync(url, new FormUrlEncodedContent(data));
+        return await response.Content.ReadAsAsync<AccessTokenModel>();
+    }
+
+
+
+    public ImapClient? GetClient(MailConfig config)
+    {
+        return null;//new ImapClient(config.HOST, config.USERNAME, config.PASSWORD, AuthMethods.Login, PORT, true);
+    }
+
+    public async Task<List<MimeMessage>> GetMessages(MailConfig mailConfig)
+    {
+        AutenticationType = mailConfig.AutenticationType;
+        tenant_id = mailConfig?.TENAT;
+        client_id = mailConfig?.CLIENT;
+        client_secret = mailConfig?.CLIENT_SECRET;
+        mail = mailConfig?.USERNAME;
+        host = mailConfig?.HOST;
+        password = mailConfig?.PASSWORD;
+        var accessToken = await GetAccessTokenAsync();
+        var messages = await GetNotSeenMessagesAsync(accessToken);
+        return messages;
+    }
+    public async Task<List<MimeMessage>> GetAllMessagesAsync(AccessTokenModel accessToken)
+    {
+        using var client = new ImapClient();
+
+        await IMAPConnectAsync(client, accessToken);
+
+        var messages = new List<MimeMessage>();
+        var uids = await client.Inbox.SearchAsync(SearchQuery.All);
+        foreach (var uid in uids)
+        {
+            messages.Add(await client.Inbox.GetMessageAsync(uid));
+        }
+
+        await client.DisconnectAsync(true);
+        return messages;
+    }
+
+    public async Task<List<MimeMessage>> GetNotSeenMessagesAsync(AccessTokenModel accessToken)
+    {
+        using var client = new ImapClient();
+
+        await IMAPConnectAsync(client, accessToken);
+
+        var inbox = await client.Inbox.OpenAsync(FolderAccess.ReadWrite);
+        var uids = await client.Inbox.SearchAsync(SearchQuery.NotSeen);  
+        
+        var messages = new List<MimeMessage>();
+
+        var carpetaLeidos = await client.GetFolderAsync("Archivo");
+        // Asegurarse de que la carpeta de destino exista
+        if (carpetaLeidos == null)
+        {
+            // Si no existe, puedes crearla
+            //carpetaLeidos = await client.Cre("Leidos", true);
+        }
+        foreach (var uid in uids)
+        {
+            var message = await client.Inbox.GetMessageAsync(uid);
+            messages.Add(message);
+            client.Inbox.MoveTo(uid, carpetaLeidos);
+        }
+        await client.DisconnectAsync(true);
+        return messages;
+    }
+
+    public async Task<MimeMessage> GetFirstUnreadMessageAsync(AccessTokenModel accessToken)
+    {
+        using var client = new ImapClient();
+
+        await IMAPConnectAsync(client, accessToken);
+
+        int unread_index = client.Inbox.FirstUnread;
+        return await client.Inbox.GetMessageAsync(unread_index);
+
+    }
+
+    private async Task IMAPConnectAsync(ImapClient client, AccessTokenModel accessToken, FolderAccess folderAccess = FolderAccess.ReadOnly)
+    {
+        var oauth2 = new SaslMechanismOAuth2(mail, accessToken.access_token);
+
+        await client.ConnectAsync(host, port, SecureSocketOptions.Auto);
+        await client.AuthenticateAsync(oauth2);
+
+        await client.Inbox.OpenAsync(folderAccess);
+    }
+}
+public class AccessTokenModel
+{
+    public string access_token { get; set; }
+    public string token_type { get; set; }
+    public int expires_in { get; set; }
+    public int ext_expires_in { get; set; }
+}
+
+
+
