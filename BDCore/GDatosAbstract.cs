@@ -74,7 +74,7 @@ namespace CAPA_DATOS
             MTConnection = null;
         }
         public void BeginGlobalTransaction()
-        {           
+        {
             this.globalTransaction = true;
             LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
             MTConnection = SQLMCon;
@@ -132,8 +132,8 @@ namespace CAPA_DATOS
             string? strQuery = BuildInsertQueryByObject(entity);
             if (strQuery == null)
             {
-                  return null;
-            }            
+                return null;
+            }
             object idGenerated = ExcuteSqlQuery(strQuery);
 
             if (pimaryKeyPropiertys.Count == 1)
@@ -272,7 +272,7 @@ namespace CAPA_DATOS
 
             if (strQuery != null)
             {
-                  ExcuteSqlQuery(strQuery);
+                ExcuteSqlQuery(strQuery);
             }
             return entity;
         }
@@ -315,7 +315,7 @@ namespace CAPA_DATOS
         {
             try
             {
-                LoggerServices.AddMessageInfo("-- > TakeList<T>(" + Inst.GetType().Name );
+                LoggerServices.AddMessageInfo("-- > TakeList<T>(" + Inst.GetType().Name);
                 DataTable Table = TraerDatosSQL(queryString);
                 List<T> ListD = ConvertDataTable<T>(Table, Inst);
                 return ListD;
@@ -352,7 +352,7 @@ namespace CAPA_DATOS
         //LECTURA Y CONVERSION DE DATOS       
         protected List<T> ConvertDataTable<T>(DataTable dt, object Inst)
         {
-            return dt.AsEnumerable().Select(row => ConvertRow<T>(Inst, row)).ToList();           
+            return dt.AsEnumerable().Select(row => ConvertRow<T>(Inst, row)).ToList();
         }
         private static T ConvertRow<T>(object Inst, DataRow dr)
         {
@@ -427,15 +427,37 @@ namespace CAPA_DATOS
             return Table;
         }
 
-        private static object GetValue(Object DefaultValue, Type type)
+        private static object GetValue(Object defaultValue, Type type)
         {
-            string? Literal = DefaultValue.ToString();
-            if (Literal == null || Literal == "" || Literal == string.Empty) return DefaultValue;
-            IConvertible obj = Literal;
+            string? literal = defaultValue.ToString();
+            if (string.IsNullOrEmpty(literal))
+            {
+                return defaultValue;
+            }
+
+            Type underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+
+            if (underlyingType.IsEnum)
+            {
+                // Si el tipo es un enumerado, intenta convertir la cadena al enumerado.
+                try
+                {
+                    return Enum.Parse(underlyingType, literal, ignoreCase: true);
+                }
+                catch (ArgumentException)
+                {
+                    // Puedes manejar la excepción de argumento aquí si es necesario.
+                    // En este caso, devolvemos el valor predeterminado.
+                    return defaultValue;
+                }
+            }
+
+            IConvertible obj = literal;
             Type? u = Nullable.GetUnderlyingType(type);
+
             if (u != null)
             {
-                return (obj == null) ? DefaultValue : Convert.ChangeType(obj, u);
+                return (obj == null) ? defaultValue : Convert.ChangeType(obj, u);
             }
             else
             {

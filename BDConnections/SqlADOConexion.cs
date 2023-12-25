@@ -13,7 +13,7 @@ namespace CAPA_DATOS
         static public bool IniciarConexion()
         {
             Anonimo = false;
-            //return IniciarConexionInLocal();
+            return IniciarConexionInLocal();
             return IniciarConexionInServer();
 
         }

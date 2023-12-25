@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using AE.Net.Mail;
-using CAPA_DATOS;
 using MimeKit;
 
 namespace CAPA_DATOS.Services

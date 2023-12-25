@@ -6,6 +6,7 @@
 
 CREATE TABLE dbo.LogError (
 	Id_Log int IDENTITY(1,1) NOT NULL,
+	"Type" nvarchar(MAX) NULL,
 	Fecha datetime NULL,
 	body nvarchar(MAX) COLLATE Modern_Spanish_CI_AS NULL,
 	message varchar(MAX) COLLATE Modern_Spanish_CI_AS NULL,

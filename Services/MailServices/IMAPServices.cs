@@ -4,7 +4,6 @@ using System.Net;
 using System.Text;
 using CAPA_DATOS;
 using MailKit.Net.Imap;
-using OAuthApplication;
 using System.Net.Http.Headers;
 using MailKit.Security;
 using MailKit;
@@ -84,8 +83,16 @@ public class IMAPServices
         mail = mailConfig?.USERNAME;
         host = mailConfig?.HOST;
         password = mailConfig?.PASSWORD;
-        var accessToken = await GetAccessTokenAsync();
-        var messages = await GetNotSeenMessagesAsync(accessToken);
+        List<MimeMessage> messages;
+        if (AutenticationType == AutenticationTypeEnum.AUTH2)
+        {
+            var accessToken = await GetAccessTokenAsync();
+            messages = await GetNotSeenMessagesAsync(accessToken);
+        }
+        else
+        {
+            messages = await GetNotSeenMessages();
+        }
         return messages;
     }
     public async Task<List<MimeMessage>> GetAllMessagesAsync(AccessTokenModel accessToken)
@@ -112,8 +119,8 @@ public class IMAPServices
         await IMAPConnectAsync(client, accessToken);
 
         var inbox = await client.Inbox.OpenAsync(FolderAccess.ReadWrite);
-        var uids = await client.Inbox.SearchAsync(SearchQuery.NotSeen);  
-        
+        var uids = await client.Inbox.SearchAsync(SearchQuery.NotSeen);
+
         var messages = new List<MimeMessage>();
 
         var carpetaLeidos = await client.GetFolderAsync("Archivo");
@@ -130,6 +137,38 @@ public class IMAPServices
             client.Inbox.MoveTo(uid, carpetaLeidos);
         }
         await client.DisconnectAsync(true);
+        return messages;
+    }
+
+    public async Task<List<MimeMessage>> GetNotSeenMessages()
+    {
+        var messages = new List<MimeMessage>();
+
+        // Establecer una conexión IMAP segura
+        using (var client = new ImapClient())
+        {
+            await client.ConnectAsync(host, port, SecureSocketOptions.SslOnConnect);
+            // Autenticación con nombre de usuario y contraseña
+            await client.AuthenticateAsync(mail, password);
+            // Seleccionar el buzón
+            var inbox = client.Inbox;
+            inbox.Open(FolderAccess.ReadOnly);
+
+            // Buscar mensajes no leídos
+            var uids = inbox.Search(SearchQuery.NotSeen);
+            var carpetaLeidos = client.GetFolder("Archivo");
+            // Obtener los mensajes no leídos
+            foreach (var uid in uids)
+            {
+                var message = await inbox.GetMessageAsync(uid);
+                messages.Add(message);
+                client.Inbox.MoveTo(uid, carpetaLeidos);
+                // Puedes acceder a otras propiedades del mensaje según sea necesario.
+            }
+
+            // Desconectar al finalizar
+            await client.DisconnectAsync(true);
+        }
         return messages;
     }
 
