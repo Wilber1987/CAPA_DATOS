@@ -13,39 +13,39 @@ namespace CAPA_DATOS
         public static void AddMessageInfoLog(string message)
         {            
             Console.WriteLine(message);
-            new LogError
+            new Log
             {
                 Fecha = DateTime.Now,               
                 message = message,
-                ErrorType = ErrorType.INFO.ToString()
+                LogType = LogType.INFO.ToString()
             }.Save();
         }
         public static void AddMessageError(string message, Exception ex)
         {
             Console.WriteLine("-- >");
-            new LogError
+            new Log
             {
                 Fecha = DateTime.Now,
-                body = ex,
+                body = $"Tipo: {ex.GetType().Name},/n Mensaje: {ex.Message},/n Pila de llamadas:/n {ex.StackTrace}",
                 message = message,
-                ErrorType = ErrorType.ERROR.ToString()
+                LogType = LogType.ERROR.ToString()
             }.Save();
         }
 
     }
 
-    public class LogError : EntityClass
+    public class Log : EntityClass
     {
         [PrimaryKey(Identity = true)]
         public int? Id_Log { get; set; }
         public DateTime? Fecha { get; set; }
         public string? message { get; set; }
-        public string? ErrorType { get; set; }
+        public string? LogType { get; set; }
         [JsonProp]
-        public Exception? body { get; set; }
+        public Object? body { get; set; }
     }
 
-    public enum ErrorType
+    public enum LogType
     {
         ERROR, INFO
     }
