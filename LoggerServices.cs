@@ -44,6 +44,17 @@ namespace CAPA_DATOS
             return Regex.Replace(input, "[^a-zA-Z0-9,.{}\":]", "");
         }
 
+        static string RemoveQuotes(string input)
+        {
+            // Eliminar comillas simples
+            string withoutSingleQuotes = input.Replace("'", string.Empty);
+
+            // Eliminar comillas dobles
+            string withoutDoubleQuotes = withoutSingleQuotes.Replace("\"", string.Empty);
+
+            return withoutDoubleQuotes;
+        }
+
     }
 
     public class Log : EntityClass
