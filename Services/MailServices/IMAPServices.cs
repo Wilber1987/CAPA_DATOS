@@ -16,6 +16,7 @@ public class MailConfig
     public string? HOST { get; set; }
     public string? USERNAME { get; set; }
     public string? PASSWORD { get; set; }
+    public HostServices? HostService { get; set; }
     public AutenticationTypeEnum? AutenticationType { get; set; }
     //AUTH 2.0
     public string? TENAT { get; set; }
@@ -23,6 +24,12 @@ public class MailConfig
     public string? OBJECTID { get; set; }
     public string? CLIENT_SECRET { get; set; }
 }
+
+public enum HostServices
+{
+    OUTLOOK, GMAIL
+}
+
 public enum AutenticationTypeEnum
 {
     AUTH2, BASIC
@@ -49,26 +56,6 @@ public class IMAPServices
         ApiClient.DefaultRequestHeaders.Accept.Clear();
         ApiClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }
-
-    public async Task<AccessTokenModel> GetAccessTokenAsync()
-    {
-        string url = $"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token";
-
-        var data = new Dictionary<string, string>
-            {
-                {"grant_type", "client_credentials"},
-                {"scope", "https://outlook.office365.com/.default"},
-                {"client_id",  client_id},
-                {"client_secret", client_secret}
-            };
-
-        using HttpClient client = new();
-        var response = await client.PostAsync(url, new FormUrlEncodedContent(data));
-        return await response.Content.ReadAsAsync<AccessTokenModel>();
-    }
-
-
-
     public ImapClient? GetClient(MailConfig config)
     {
         return null;//new ImapClient(config.HOST, config.USERNAME, config.PASSWORD, AuthMethods.Login, PORT, true);
@@ -86,12 +73,12 @@ public class IMAPServices
         List<MimeMessage> messages;
         if (AutenticationType == AutenticationTypeEnum.AUTH2)
         {
-            var accessToken = await GetAccessTokenAsync();
+            var accessToken = await Auth2Utils.GetAccessTokenAsync(mailConfig);
             messages = await GetNotSeenMessagesAsync(accessToken);
         }
         else
         {
-            messages = await GetNotSeenMessages();
+            messages = await GetNotSeenMessagesAsync(null);
         }
         return messages;
     }
@@ -115,8 +102,17 @@ public class IMAPServices
     public async Task<List<MimeMessage>> GetNotSeenMessagesAsync(AccessTokenModel accessToken)
     {
         using var client = new ImapClient();
-
-        await IMAPConnectAsync(client, accessToken);
+        if (accessToken == null)
+        {
+            //autenticacion basica user and password
+            await client.ConnectAsync(host, port, SecureSocketOptions.SslOnConnect);
+            await client.AuthenticateAsync(mail, password);
+        } else{
+            //autenticacion con auth2
+            await IMAPConnectAsync(client, accessToken);
+        }
+        
+       await client.Inbox.OpenAsync(FolderAccess.ReadOnly);
 
         var inbox = await client.Inbox.OpenAsync(FolderAccess.ReadWrite);
         var uids = await client.Inbox.SearchAsync(SearchQuery.NotSeen);
@@ -140,37 +136,35 @@ public class IMAPServices
         return messages;
     }
 
-    public async Task<List<MimeMessage>> GetNotSeenMessages()
-    {
-        var messages = new List<MimeMessage>();
+    // public async Task<List<MimeMessage>> GetNotSeenMessages()
+    // {
+    //     using var client = new ImapClient();
 
-        // Establecer una conexión IMAP segura
-        using (var client = new ImapClient())
-        {
-            await client.ConnectAsync(host, port, SecureSocketOptions.SslOnConnect);
-            // Autenticación con nombre de usuario y contraseña
-            await client.AuthenticateAsync(mail, password);
-            // Seleccionar el buzón
-            var inbox = client.Inbox;
-            inbox.Open(FolderAccess.ReadOnly);
+    //     await client.ConnectAsync(host, port, SecureSocketOptions.SslOnConnect);
+    //     // Autenticación con nombre de usuario y contraseña
+    //     await client.AuthenticateAsync(mail, password);
 
-            // Buscar mensajes no leídos
-            var uids = inbox.Search(SearchQuery.NotSeen);
-            var carpetaLeidos = client.GetFolder("Archivo");
-            // Obtener los mensajes no leídos
-            foreach (var uid in uids)
-            {
-                var message = await inbox.GetMessageAsync(uid);
-                messages.Add(message);
-                client.Inbox.MoveTo(uid, carpetaLeidos);
-                // Puedes acceder a otras propiedades del mensaje según sea necesario.
-            }
+    //     await client.Inbox.OpenAsync(FolderAccess.ReadOnly);
+    //     var inbox = await client.Inbox.OpenAsync(FolderAccess.ReadWrite);
+    //     var uids = await client.Inbox.SearchAsync(SearchQuery.NotSeen);
 
-            // Desconectar al finalizar
-            await client.DisconnectAsync(true);
-        }
-        return messages;
-    }
+    //     var messages = new List<MimeMessage>();
+    //     var carpetaLeidos = await client.GetFolderAsync("Archivo");
+    //     // Asegurarse de que la carpeta de destino exista
+    //     if (carpetaLeidos == null)
+    //     {
+    //         // Si no existe, puedes crearla
+    //         //carpetaLeidos = await client.Cre("Leidos", true);
+    //     }
+    //     foreach (var uid in uids)
+    //     {
+    //         var message = await client.Inbox.GetMessageAsync(uid);
+    //         messages.Add(message);
+    //         client.Inbox.MoveTo(uid, carpetaLeidos);
+    //     }
+    //     await client.DisconnectAsync(true);
+    //     return messages;
+    // }
 
     public async Task<MimeMessage> GetFirstUnreadMessageAsync(AccessTokenModel accessToken)
     {
@@ -185,20 +179,20 @@ public class IMAPServices
 
     private async Task IMAPConnectAsync(ImapClient client, AccessTokenModel accessToken, FolderAccess folderAccess = FolderAccess.ReadOnly)
     {
-        var oauth2 = new SaslMechanismOAuth2(mail, accessToken.access_token);
+        var oauth2 = new SaslMechanismOAuth2(mail, accessToken.Access_token);
 
         await client.ConnectAsync(host, port, SecureSocketOptions.Auto);
         await client.AuthenticateAsync(oauth2);
 
-        await client.Inbox.OpenAsync(folderAccess);
+        //await client.Inbox.OpenAsync(folderAccess);
     }
 }
 public class AccessTokenModel
 {
-    public string access_token { get; set; }
-    public string token_type { get; set; }
-    public int expires_in { get; set; }
-    public int ext_expires_in { get; set; }
+    public string? Access_token { get; set; }
+    public string? Token_type { get; set; }
+    public int Expires_in { get; set; }
+    public int Ext_expires_in { get; set; }
 }
 
 

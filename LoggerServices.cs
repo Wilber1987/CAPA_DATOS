@@ -1,21 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CAPA_DATOS
 {
     public class LoggerServices
     {
         public static void AddMessageInfo(string message)
-        {            
-            Console.WriteLine(message);            
+        {
+            Console.WriteLine(message);
         }
         public static void AddMessageInfoLog(string message)
-        {            
+        {
             Console.WriteLine(message);
             new Log
             {
-                Fecha = DateTime.Now,               
+                Fecha = DateTime.Now,
                 message = message,
                 LogType = LogType.INFO.ToString()
             }.Save();
@@ -26,10 +27,21 @@ namespace CAPA_DATOS
             new Log
             {
                 Fecha = DateTime.Now,
-                body = $"Tipo: {ex.GetType().Name},/n Mensaje: {ex.Message},/n Pila de llamadas:/n {ex.StackTrace}",
+                body = RemoveSpecialCharactersForSql($"Tipo: {ex.GetType().Name},/n Mensaje: {ex.Message},/n Pila de llamadas:/n {ex.StackTrace}"),
                 message = message,
                 LogType = LogType.ERROR.ToString()
             }.Save();
+        }
+        static string RemoveSpecialCharactersForSql(string input)
+        {
+            // Utilizar una expresión regular para eliminar caracteres especiales para SQL
+            return Regex.Replace(input, "[^a-zA-Z0-9]", " ");
+        }
+
+        static string RemoveSpecialCharactersForJson(string input)
+        {
+            // Utilizar una expresión regular para eliminar caracteres especiales para JSON
+            return Regex.Replace(input, "[^a-zA-Z0-9,.{}\":]", "");
         }
 
     }

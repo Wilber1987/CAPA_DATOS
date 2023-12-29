@@ -76,17 +76,28 @@ namespace CAPA_DATOS.Services
             {
                 Directory.CreateDirectory(Ruta);
             }
+            //var fileName = attachment.ContentDisposition?.FileName ?? attachment.ContentType.Name;
 
-            var fileName = attachment.ContentDisposition?.FileName ?? attachment.ContentType.Name;
-
-            byte[] datos = ObtenerDatosMimeEntity(attachment);           
+            //byte[] datos = ObtenerDatosMimeEntity(attachment);           
             string FileType = GetFileType(attachment.ContentType.MediaType);
-
-            Guid Uuid = Guid.NewGuid();
-            string FileName = Uuid.ToString() + FileType;
+            string FileName = Guid.NewGuid().ToString() + FileType;
             string FileRoute = Ruta + FileName;
-            File.WriteAllBytes(FileRoute, datos);
+            //File.WriteAllBytes(FileRoute, datos);
             string RutaRelativa = Path.GetRelativePath(Directory.GetCurrentDirectory(), FileRoute);
+
+            using (var stream = File.Create(FileRoute))
+            {
+                if (attachment is MimePart)
+                {
+                    var part = (MimePart)attachment;
+                    part.Content.DecodeTo(stream);
+                }
+                else if (attachment is MessagePart)
+                {
+                    var part = (MessagePart)attachment;
+                    part.Message.WriteTo(stream);
+                }
+            }
 
             ModelFiles AttachFiles = new ModelFiles
             {
@@ -116,6 +127,7 @@ namespace CAPA_DATOS.Services
                 { "application/pdf", ".pdf" },
                 { "image/jpeg", ".png" },
                 { "image/png", ".png" },
+                { "image", ".png" },
                 { "png", ".png" },
                 { "jpg", ".png" },
                 { "jpeg", ".png" },

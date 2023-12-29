@@ -5,10 +5,12 @@ using System.Net.Mail;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.Identity.Client;
+using MimeKit;
 
 namespace CAPA_DATOS.Services
 {
@@ -32,45 +34,86 @@ namespace CAPA_DATOS.Services
                 var clientId = mailConfig.CLIENT;
                 var clientSecret = mailConfig.CLIENT_SECRET;
                 var tenantId = mailConfig.TENAT;
-                var scopes = new[] { mailConfig.HOST }; // Ajusta los ámbitos según tus necesidades.
-
                 var cca = ConfidentialClientApplicationBuilder.Create(clientId)
                     .WithClientSecret(clientSecret)
                     .WithAuthority(new Uri($"https://login.microsoftonline.com/{tenantId}"))
                     .Build();
 
-                var result = await cca.AcquireTokenForClient(scopes)
-                    .ExecuteAsync();
+                var AccessToken = await Auth2Utils.GetAccessTokenAsync(mailConfig);
 
-                var message = new MimeKit.MimeMessage();
+                var message = new MimeMessage();
                 toMails.ForEach(m =>
                 {
-                    message.To.Add(new MimeKit.MailboxAddress("-", m));
+                    string? mail = obtainMail(m);
+                    message.To.Add(new MailboxAddress("-", mail));
                 });
-                message.From.Add(new MimeKit.MailboxAddress("HELPDESK", mailConfig.USERNAME));
+                message.From.Add(new MailboxAddress("HELPDESK", mailConfig.USERNAME));
 
                 message.Subject = subject;
-                message.Body = new MimeKit.TextPart("html")
-                {
-                    Text = body
-                };
 
+                var multipart = new Multipart("mixed");
+                var htmlBody = new TextPart("html")
+                {
+                    Text = body ?? "correo enviado desde helpdesk:"
+                };
+                multipart.Add(htmlBody);
+                if (attach != null)
+                {
+                    foreach (var file in attach)
+                    {
+                        var attachment = new MimePart("application", "octet-stream")
+                        {
+                            ContentDisposition = new ContentDisposition(ContentDisposition.Attachment),
+                            ContentTransferEncoding = ContentEncoding.Base64,
+                            FileName = file.Name,
+                            // Aquí especifica la ruta del archivo
+                            // var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, file.Name);
+                            // Lee el contenido del archivo y asigna al cuerpo del adjunto
+                            Content = new MimeContent(File.OpenRead(file.Value))
+                        };
+                        //attachment.Content = new MimeContent(new MemoryStream(Convert.FromBase64String(base64Data)));
+                        multipart.Add(attachment);
+                    }
+                }
+                // Asigna el cuerpo del mensaje al mensaje principal
+                message.Body = multipart;
                 using (var client = new MailKit.Net.Smtp.SmtpClient())
                 {
-                    await client.ConnectAsync(mailConfig.HOST, PORT, false);
-                    await client.AuthenticateAsync(mailConfig.USERNAME, result.AccessToken);
-                    await client.SendAsync(message);
-                    await client.DisconnectAsync(true);
+                    client.Connect(mailConfig.HOST, 587, SecureSocketOptions.StartTls);
+                    // use the access token
+                    var oauth2 = new SaslMechanismOAuth2(mailConfig.USERNAME, AccessToken.Access_token);
+                    client.Authenticate(oauth2);
+                    client.Send(message);
+                    client.Disconnect(true);
                 }
                 return true;
             }
             catch (Exception ex)
             {
                 LoggerServices.AddMessageError($"error enviando correo desde {mailConfig.HOST} {mailConfig.USERNAME}", ex);
-                  return false;
+                return false;
             }
         }
+        public static string? obtainMail(string inputString)
+        {
+            // Utilizamos una expresión regular para buscar direcciones de correo electrónico
+            string pattern = @"<([^>]+)>"; // Buscará lo que esté dentro de los corchetes angulares
+            Regex regex = new Regex(pattern);
 
+            // Buscamos coincidencias en la cadena
+            Match match = regex.Match(inputString);
+
+            // Verificamos si se encontró una coincidencia
+            if (match.Success)
+            {
+                string emailAddress = match.Groups[1].Value;
+                return emailAddress;
+            }
+            else
+            {
+                return null;
+            }
+        }
         public static bool SendMailBasic(string from,
             List<string> toMails,
             string subject,
@@ -105,13 +148,13 @@ namespace CAPA_DATOS.Services
                     UseDefaultCredentials = false,
                     Host = config.HOST ?? "",
                     Port = PORT, //Puerto de salida 
-                    Credentials = new System.Net.NetworkCredential(config.USERNAME, config.PASSWORD)//Cuenta de correo
+                    Credentials = new NetworkCredential(config.USERNAME, config.PASSWORD)//Cuenta de correo
                 };
                 ServicePointManager.ServerCertificateValidationCallback +=
                   (sender, cert, chain, sslPolicyErrors) => true;
                 smtp.EnableSsl = true;//True si el servidor de correo permite ssl
                 smtp.Send(correo);
-                  return true;
+                return true;
             }
             catch (Exception ex)
             {
