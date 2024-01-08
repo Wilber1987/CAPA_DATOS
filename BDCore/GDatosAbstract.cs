@@ -67,27 +67,28 @@ namespace CAPA_DATOS
             if (this.globalTransaction)
             {
                 return;
-            }
-            LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
+            }            
             this.MTransaccion?.Rollback();
             SQLMCon.Close();
             MTConnection = null;
+            LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
         }
         public void BeginGlobalTransaction()
         {
             this.globalTransaction = true;
-            LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
+            
             MTConnection = SQLMCon;
             SQLMCon.Open();
             this.MTransaccion = SQLMCon.BeginTransaction();
+            LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
         }
         public void CommitGlobalTransaction()
         {
-            this.globalTransaction = false;
-            LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
+            this.globalTransaction = false;           
             this.MTransaccion?.Commit();
             SQLMCon.Close();
             MTConnection = null;
+            LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
         }
         public void RollBackGlobalTransaction()
         {

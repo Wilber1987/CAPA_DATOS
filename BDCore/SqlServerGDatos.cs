@@ -424,6 +424,14 @@ namespace CAPA_DATOS
                                    (filter.Values.Count > 1 ? AtributeName + " <= " + filter.Values[1] + " ) " : ") ");
                             }
                             break;
+                        case "IN":
+                            WhereOrAnd(ref CondicionString, ref index);
+                            CondicionString = CondicionString + AtributeName + " IN (" + BuildArrayIN(filter.Values, atributeType) + ") ";
+                            break;
+                        case "NOT IN":
+                            WhereOrAnd(ref CondicionString, ref index);
+                            CondicionString = CondicionString + AtributeName + " NOT IN (" + BuildArrayIN(filter.Values, atributeType) + ") ";
+                            break;
                         default:
                             if ((atributeType == "string" || atributeType == "String") && filter.Values[0]?.ToString()?.Length < 200)
                             {
@@ -571,6 +579,25 @@ namespace CAPA_DATOS
             //string DescribeQuery = @"exec sp_fkeys '" + entityName + "'";
             DataTable Table = TraerDatosSQL(DescribeQuery);
             return ConvertDataTable<OneToManySchema>(Table, new OneToManySchema());
+        }
+
+        public static string BuildArrayIN(List<string> conditions, string atributeType = "string")
+        {
+            string CondicionString = "";
+            foreach (string? Value in conditions)
+            {
+                if ((atributeType == "string" || atributeType == "String" || atributeType == "DateTime") && Value?.Length < 200)
+                {
+                    //WhereOrAnd(ref CondicionString, ref index);
+                    CondicionString = CondicionString + "'" + Value + "',";
+                } else {
+                    //WhereOrAnd(ref CondicionString, ref index);
+                    CondicionString = CondicionString + Value?.ToString() + ",";
+                }
+                //CondicionString = CondicionString + Value + ",";
+            }
+            CondicionString = CondicionString.TrimEnd(',');
+            return CondicionString;
         }
     }
 }

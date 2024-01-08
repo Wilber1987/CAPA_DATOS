@@ -1,11 +1,4 @@
-﻿using CAPA_DATOS;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Metadata;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Reflection;
 
 namespace CAPA_DATOS;
 public abstract class EntityClass : TransactionalClass
@@ -15,7 +8,7 @@ public abstract class EntityClass : TransactionalClass
     {
         var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true);
         return Data.ToList() ?? new List<T>();
-    }
+    }  
 
      public List<T> GetAll<T>()
     {
@@ -50,30 +43,18 @@ public abstract class EntityClass : TransactionalClass
     }
     public List<T> Get_WhereIN<T>(string Field, string?[]? conditions)
     {
-        string condition = BuildArrayIN(conditions);
+        string? condition =  SqlServerGDatos.BuildArrayIN(conditions.ToList());
         var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true, Field + " IN (" + condition + ")");
         return Data ?? new List<T>();
     }
     public List<T> Get_WhereNotIN<T>(string Field, string[] conditions)
     {
-        string condition = BuildArrayIN(conditions);
+        //string condition = BuildArrayIN(conditions);
+        string? condition =  SqlServerGDatos.BuildArrayIN(conditions.ToList());
         var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true, Field + " NOT IN (" + condition + ")");
         return Data ?? new List<T>();
     }
-    private static string BuildArrayIN(string?[]? conditions)
-    {
-        string condition = "";
-        foreach (string? Value in conditions ?? new string?[0])
-        {
-            condition = condition + Value + ",";
-        }
-        condition = condition.TrimEnd(',');
-        if (condition == "")
-        {
-            return "-1";
-        }
-        return condition;
-    }
+    
     public object? Save()
     {
         try
