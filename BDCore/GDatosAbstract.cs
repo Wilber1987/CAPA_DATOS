@@ -2,6 +2,7 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.Reflection;
+using System.Transactions;
 using Newtonsoft.Json;
 
 namespace CAPA_DATOS
@@ -42,14 +43,21 @@ namespace CAPA_DATOS
         }
         public void BeginTransaction()
         {
-            if (this.globalTransaction)
+            try
             {
-                return;
+                if (this.globalTransaction)
+                {
+                    return;
+                }
+                LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
+                MTConnection = SQLMCon;
+                SQLMCon.Open();
+                this.MTransaccion = SQLMCon.BeginTransaction();
             }
-            LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
-            MTConnection = SQLMCon;
-            SQLMCon.Open();
-            this.MTransaccion = SQLMCon.BeginTransaction();
+            catch (TransactionException e)
+            {
+                LoggerServices.AddMessageError("BEGIN TRANSACTION ERROR", e);
+            }
         }
         public void CommitTransaction()
         {
@@ -67,7 +75,7 @@ namespace CAPA_DATOS
             if (this.globalTransaction)
             {
                 return;
-            }            
+            }
             this.MTransaccion?.Rollback();
             SQLMCon.Close();
             MTConnection = null;
@@ -76,7 +84,7 @@ namespace CAPA_DATOS
         public void BeginGlobalTransaction()
         {
             this.globalTransaction = true;
-            
+
             MTConnection = SQLMCon;
             SQLMCon.Open();
             this.MTransaccion = SQLMCon.BeginTransaction();
@@ -84,7 +92,7 @@ namespace CAPA_DATOS
         }
         public void CommitGlobalTransaction()
         {
-            this.globalTransaction = false;           
+            this.globalTransaction = false;
             this.MTransaccion?.Commit();
             SQLMCon.Close();
             MTConnection = null;

@@ -8,7 +8,7 @@ namespace CAPA_DATOS
     {
         private static string UserSQLConexion = "";
         public static SqlServerGDatos? SQLM;
-        public static string DataBaseName = "EMPRE_SA";
+        public static string DataBaseName = "HELPDESK";
         public static bool Anonimo = true;
         static public bool IniciarConexion()
         {
@@ -68,8 +68,8 @@ namespace CAPA_DATOS
             try
             {
                 Anonimo = false;
-                //return createConexion(".", "sa",  "zaxscd");
-                //return createConexion(".", "sa",  "Helpdesk2023");
+                return createConexion(".", "sa",  "zaxscd");
+                return createConexion(".", "sa",  "Helpdesk2023");
                 return createConexion(".\\SQLEXPRESS", "sa", "123");
             }
             catch (Exception)

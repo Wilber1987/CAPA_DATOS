@@ -8,9 +8,9 @@ public abstract class EntityClass : TransactionalClass
     {
         var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true);
         return Data.ToList() ?? new List<T>();
-    }  
+    }
 
-     public List<T> GetAll<T>()
+    public List<T> GetAll<T>()
     {
         var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true);
         return Data.ToList() ?? new List<T>();
@@ -43,18 +43,34 @@ public abstract class EntityClass : TransactionalClass
     }
     public List<T> Get_WhereIN<T>(string Field, string?[]? conditions)
     {
-        string? condition =  SqlServerGDatos.BuildArrayIN(conditions.ToList());
+        string condition = BuildArrayIN(conditions);
+        //string? condition =  SqlServerGDatos.BuildArrayIN(conditions.ToList());
         var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true, Field + " IN (" + condition + ")");
         return Data ?? new List<T>();
     }
     public List<T> Get_WhereNotIN<T>(string Field, string[] conditions)
     {
-        //string condition = BuildArrayIN(conditions);
-        string? condition =  SqlServerGDatos.BuildArrayIN(conditions.ToList());
+        string condition = BuildArrayIN(conditions);
+
         var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true, Field + " NOT IN (" + condition + ")");
         return Data ?? new List<T>();
     }
-    
+
+    private static string BuildArrayIN(string?[]? conditions)
+    {
+        string condition = "";
+        foreach (string? Value in conditions ?? new string?[0])
+        {
+            condition = condition + Value + ",";
+        }
+        condition = condition.TrimEnd(',');
+        if (condition == "")
+        {
+            return "-1";
+        }
+        return condition;
+    }
+
     public object? Save()
     {
         try
@@ -152,8 +168,9 @@ public abstract class StoreProcedureClass : TransactionalClass
     public List<Object>? Parameters { get; set; }
     public ResponseService Execute()
     {
-        var DataProcedure = SqlADOConexion.SQLM?.ExecuteProcedure(this, Parameters);        
-        return new ResponseService{
+        var DataProcedure = SqlADOConexion.SQLM?.ExecuteProcedure(this, Parameters);
+        return new ResponseService
+        {
             message = "Procedimiento ejecutado correctamente"
         };
     }
