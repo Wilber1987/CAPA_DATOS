@@ -30,7 +30,6 @@ public abstract class EntityClass : TransactionalClass
     public List<T> Get_WhereNotIN<T>(string Field, string[] conditions)
     {
         string condition = BuildArrayIN(conditions);
-
         var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true, Field + " NOT IN (" + condition + ")");
         return Data ?? new List<T>();
     }
