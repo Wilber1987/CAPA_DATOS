@@ -4,13 +4,13 @@ using System.Data.SqlClient;
 using System.Reflection;
 using System.Transactions;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace CAPA_DATOS
 {
     public abstract class GDatosAbstract
     {
         protected abstract IDbConnection SQLMCon { get; }
-
         protected String? ConexionString;
         protected IDbTransaction? MTransaccion;
         protected bool globalTransaction;
@@ -21,13 +21,14 @@ namespace CAPA_DATOS
         protected abstract IDataAdapter CrearDataAdapterSql(string comandoSql, IDbConnection connection);
         protected abstract IDataAdapter CrearDataAdapterSql(IDbCommand comandoSql);
         protected abstract List<EntityProps> DescribeEntity(string entityName);
+        public abstract DataTable ExecuteProcedure(object Inst, List<object> Params);
         protected abstract string BuildSelectQuery(object Inst, string CondSQL,
             bool fullEntity = true, bool isFind = true);
-        protected abstract string? BuildInsertQueryByObject(object Inst);
         protected abstract string? BuildUpdateQueryByObject(object Inst, string IdObject);
         protected abstract string? BuildUpdateQueryByObject(object Inst, string[] WhereProps);
         protected abstract string BuildDeleteQuery(object Inst);
-        //ADO.NET METHODS
+
+        #region ADO.NET METHODS
         public bool TestConnection()
         {
             try
@@ -49,12 +50,17 @@ namespace CAPA_DATOS
                 {
                     return;
                 }
+                this.MTConnection = null;
                 LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
                 MTConnection = SQLMCon;
                 SQLMCon.Open();
                 this.MTransaccion = SQLMCon.BeginTransaction();
             }
             catch (TransactionException e)
+            {
+                LoggerServices.AddMessageError("BEGIN TRANSACTION ERROR", e);
+            }
+            catch (Exception e)
             {
                 LoggerServices.AddMessageError("BEGIN TRANSACTION ERROR", e);
             }
@@ -84,7 +90,7 @@ namespace CAPA_DATOS
         public void BeginGlobalTransaction()
         {
             this.globalTransaction = true;
-
+            this.MTConnection = null;
             MTConnection = SQLMCon;
             SQLMCon.Open();
             this.MTransaccion = SQLMCon.BeginTransaction();
@@ -129,7 +135,9 @@ namespace CAPA_DATOS
             CrearDataAdapterSql(Command).Fill(ObjDS);
             return ObjDS.Tables[0].Copy();
         }
-        //ORM INSERT, DELETE, UPDATES METHODS
+        #endregion
+
+        #region ORM INSERT, DELETE, UPDATES METHODS
         public object? InsertObject(Object entity)
         {
             LoggerServices.AddMessageInfo("-- >  InsertObject(" + entity.GetType().Name + ")");
@@ -304,19 +312,22 @@ namespace CAPA_DATOS
             return ExcuteSqlQuery(strQuery);
         }
 
-        //LECTURA DE OBJETOS
+        #endregion
+        
+        #region LECTURA DE OBJETOS
         public List<T> TakeList<T>(Object Inst, bool fullEntity, string CondSQL = "")
         {
             try
             {
                 LoggerServices.AddMessageInfo("-- > TakeList<T>(" + Inst.GetType().Name + ",fullEntity: " + fullEntity.ToString() + ", condition: " + CondSQL + ")");
                 DataTable Table = BuildTable(Inst, ref CondSQL, fullEntity, false);
-                List<T> ListD = ConvertDataTable<T>(Table, Inst);
+                List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
                 return ListD;
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 SQLMCon.Close();
+                LoggerServices.AddMessageError("ERROR: TakeList", e);
                 throw;
             }
         }
@@ -326,7 +337,7 @@ namespace CAPA_DATOS
             {
                 LoggerServices.AddMessageInfo("-- > TakeList<T>(" + Inst.GetType().Name);
                 DataTable Table = TraerDatosSQL(queryString);
-                List<T> ListD = ConvertDataTable<T>(Table, Inst);
+                List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
                 return ListD;
             }
             catch (Exception)
@@ -342,7 +353,7 @@ namespace CAPA_DATOS
             DataTable Table = BuildTable(Inst, ref CondSQL, true, true);
             if (Table.Rows.Count != 0)
             {
-                var CObject = ConvertRow<T>(Inst, Table.Rows[0]);
+                var CObject = AdapterUtil.ConvertRow<T>(Inst, Table.Rows[0]);
                 return CObject;
             }
             else
@@ -358,140 +369,95 @@ namespace CAPA_DATOS
             DataTable Table = TraerDatosSQL(queryString);
             return Table;
         }
-        //LECTURA Y CONVERSION DE DATOS       
-        protected List<T> ConvertDataTable<T>(DataTable dt, object Inst)
-        {
-            return dt.AsEnumerable().Select(row => ConvertRow<T>(Inst, row)).ToList();
-        }
-        private static T ConvertRow<T>(object Inst, DataRow dr)
-        {
-            var obj = Activator.CreateInstance<T>();
-            Type temp = Inst.GetType();
-            foreach (DataColumn column in dr.Table.Columns)
-            {
-                if (!string.IsNullOrEmpty(dr[column.ColumnName].ToString()))
-                {
-                    foreach (PropertyInfo oProperty in temp.GetProperties())
-                    {
-                        if (oProperty.Name == column.ColumnName)
-                        {
-                            var val = dr[column.ColumnName];
-                            var jsonProp = (JsonProp?)Attribute.GetCustomAttribute(oProperty, typeof(JsonProp));
-                            var oneToOne = (OneToOne?)Attribute.GetCustomAttribute(oProperty, typeof(OneToOne));
-                            var manyToOne = (ManyToOne?)Attribute.GetCustomAttribute(oProperty, typeof(ManyToOne));
-                            var oneToMany = (OneToMany?)Attribute.GetCustomAttribute(oProperty, typeof(OneToMany));
-                            if (oneToOne != null || manyToOne != null || oneToMany != null || jsonProp != null)
-                            {
-                                var getVal = GetJsonValue(val, oProperty.PropertyType);
-                                oProperty.SetValue(obj, getVal);
-                            }
-                            else
-                            {
-                                var getVal = GetValue(val, oProperty.PropertyType);
-                                oProperty.SetValue(obj, getVal);
-                            }
-
-                        }
-                        else continue;
-                    }
-                }
-                else continue;
-
-            }
-            return obj;
-        }
         public List<T> TakeListWithProcedure<T>(Object Inst, List<Object> Params)
         {
             try
             {
                 DataTable Table = ExecuteProcedure(Inst, Params);
-                List<T> ListD = ConvertDataTable<T>(Table, Inst);
+                List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
                 return ListD;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                LoggerServices.AddMessageError("ERROR: TakeListWithProcedure", e);
                 throw;
             }
         }
+        #endregion
 
-        public DataTable ExecuteProcedure(object Inst, List<object> Params)
+        #region  QUERYBUILDER IMPLEMANTATIONS
+        protected string? BuildInsertQueryByObject(object Inst)
         {
-            var conec = CrearConexion(ConexionString);
-            var Command = ComandoSql(Inst.GetType().Name, conec);
-            Command.CommandType = CommandType.StoredProcedure;
-            conec.Open();
-            SqlCommandBuilder.DeriveParameters((SqlCommand)Command);
-            conec.Close();
-            if (Params?.Count != 0)
+            string ColumnNames = "";
+            string Values = "";
+            Type _type = Inst.GetType();
+            PropertyInfo[] lst = _type.GetProperties();
+            List<EntityProps> entityProps = DescribeEntity(Inst.GetType().Name);
+
+            foreach (PropertyInfo oProperty in lst)
             {
-                int i = 0;
-                foreach (var param in Params)
+                string AtributeName = oProperty.Name;
+                var AtributeValue = oProperty.GetValue(Inst);
+                var EntityProp = entityProps.Find(e => e.COLUMN_NAME == AtributeName);
+                if (AtributeValue != null && EntityProp != null)
                 {
-                    var p = (SqlParameter)Command.Parameters[i + 1];
-                    p.Value = param;
-                    i++;
+                    switch (EntityProp.DATA_TYPE)
+                    {
+                        case "nvarchar":
+                        case "varchar":
+                        case "char":
+                            ColumnNames = ColumnNames + AtributeName.ToString() + ",";
+                            JsonProp? json = (JsonProp?)Attribute.GetCustomAttribute(oProperty, typeof(JsonProp));
+                            if (json != null)
+                            {
+                                String jsonV = JsonConvert.SerializeObject(AtributeValue);
+                                Values = Values + "'" + JValue.Parse(jsonV).ToString(Formatting.Indented) + "',";
+                            }
+                            else
+                            {
+                                Values = Values + "'" + AtributeValue.ToString() + "',";
+                            }
+                            break;
+                        case "int":
+                        case "float":
+                            ColumnNames = ColumnNames + AtributeName.ToString() + ",";
+                            Values = Values + "cast ('" + AtributeValue?.ToString()?.Replace(",", ".") + "' as float),";
+                            break;
+                        case "decimal":
+                            ColumnNames = ColumnNames + AtributeName.ToString() + ",";
+                            Values = Values + "cast ('" + AtributeValue?.ToString()?.Replace(",", ".") + "' as decimal),";
+                            break;
+                        case "bigint":
+                        case "money":
+                        case "smallint":
+                            ColumnNames = ColumnNames + AtributeName.ToString() + ",";
+                            Values = Values + AtributeValue.ToString() + ",";
+                            break;
+                        case "bit":
+                            ColumnNames = ColumnNames + AtributeName.ToString() + ",";
+                            Values = Values + "'" + (AtributeValue.ToString() == "True" ? "1" : "0") + "',";
+                            break;
+                        case "datetime":
+                        case "date":
+                            ColumnNames = ColumnNames + AtributeName.ToString() + ",";
+                            Values = Values + "CONVERT(DATETIME,'" + ((DateTime)AtributeValue).ToString("yyyyMMdd HH:mm:ss") + "'),";
+                            break;
+                    }
                 }
-            }
-            DataTable Table = TraerDatosSQL(Command);
-            return Table;
-        }
+                else continue;
 
-        private static object GetValue(Object defaultValue, Type type)
-        {
-            string? literal = defaultValue.ToString();
-            if (string.IsNullOrEmpty(literal))
+            }
+            ColumnNames = ColumnNames.TrimEnd(',');
+            Values = Values.TrimEnd(',');
+            if (Values == "")
             {
-                return defaultValue;
+                return null;
             }
-
-            Type underlyingType = Nullable.GetUnderlyingType(type) ?? type;
-
-            if (underlyingType.IsEnum)
-            {
-                // Si el tipo es un enumerado, intenta convertir la cadena al enumerado.
-                try
-                {
-                    return Enum.Parse(underlyingType, literal, ignoreCase: true);
-                }
-                catch (ArgumentException)
-                {
-                    // Puedes manejar la excepción de argumento aquí si es necesario.
-                    // En este caso, devolvemos el valor predeterminado.
-                    return defaultValue;
-                }
-            }
-
-            IConvertible obj = literal;
-            Type? u = Nullable.GetUnderlyingType(type);
-
-            if (u != null)
-            {
-                return (obj == null) ? defaultValue : Convert.ChangeType(obj, u);
-            }
-            else
-            {
-                return Convert.ChangeType(obj, type);
-            }
+            string QUERY = "INSERT INTO " + entityProps[0].TABLE_SCHEMA + "." + Inst.GetType().Name + "(" + ColumnNames + ") VALUES(" + Values + ") SELECT SCOPE_IDENTITY()";
+            LoggerServices.AddMessageInfo(QUERY);
+            return QUERY;
         }
-        private static object? GetJsonValue(Object DefaultValue, Type type)
-        {
-            string? Literal = DefaultValue.ToString();
-            if (Literal == null || Literal == "" || Literal == string.Empty) return null;
-            var ListInstanceType = JsonConvert.DeserializeObject(Literal, type);
-            return ListInstanceType;
-        }
-        //DEPRECATE        
-        public static bool JsonCompare(object obj, object another)
-        {
-            if (ReferenceEquals(obj, another)) return true;
-            if ((obj == null) || (another == null)) return false;
-            if (obj.GetType() != another.GetType()) return false;
-
-            var objJson = JsonConvert.SerializeObject(obj);
-            var anotherJson = JsonConvert.SerializeObject(another);
-
-            return objJson == anotherJson;
-        }
-
+        #endregion
     }
+
 }

@@ -24,8 +24,9 @@ namespace CAPA_DATOS
                 Anonimo = false;
                 return createConexion(SQLServer, SGBD_USER, SWGBD_PASSWORD);
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                LoggerServices.AddMessageError("ERROR: IniciarConexion", e);
                 Anonimo = true;
                 return false;
                 throw;
@@ -68,8 +69,8 @@ namespace CAPA_DATOS
             try
             {
                 Anonimo = false;
-                return createConexion(".", "sa",  "zaxscd");
-                return createConexion(".", "sa",  "Helpdesk2023");
+                return createConexion(".", "sa", "zaxscd");
+                return createConexion(".", "sa", "Helpdesk2023");
                 return createConexion(".\\SQLEXPRESS", "sa", "123");
             }
             catch (Exception)

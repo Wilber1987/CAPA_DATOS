@@ -47,7 +47,7 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine("-- > :" + ex);
+                LoggerServices.AddMessageError("ERROR: loginIN", ex);
                 return new UserModel()
                 {
                     success = false,

@@ -83,7 +83,8 @@ public abstract class EntityClass : TransactionalClass
         catch (Exception e)
         {
             SqlADOConexion.SQLM?.RollBackTransaction();
-            throw e;
+            LoggerServices.AddMessageError("ERROR: Save entity", e);
+            throw;
         }
     }
     public object? Update()
@@ -110,6 +111,7 @@ public abstract class EntityClass : TransactionalClass
         }
         catch (Exception e)
         {
+            LoggerServices.AddMessageError("ERROR: Update entity", e);
             return new ResponseService()
             {
                 status = 500,
@@ -129,7 +131,8 @@ public abstract class EntityClass : TransactionalClass
         catch (Exception e)
         {
             SqlADOConexion.SQLM?.RollBackTransaction();
-            throw e;
+            LoggerServices.AddMessageError("ERROR: Update entity ID", e);
+            throw;
         }
     }
     public bool Update(string[] Id)
@@ -144,7 +147,8 @@ public abstract class EntityClass : TransactionalClass
         catch (Exception e)
         {
             SqlADOConexion.SQLM?.RollBackTransaction();
-            throw e;
+            LoggerServices.AddMessageError("ERROR: Update entity []ID", e);
+            throw;
         }
     }
     public bool Delete()
@@ -159,7 +163,8 @@ public abstract class EntityClass : TransactionalClass
         catch (Exception e)
         {
             SqlADOConexion.SQLM?.RollBackTransaction();
-            throw e;
+            LoggerServices.AddMessageError("ERROR: Update entity Delete", e);
+            throw;
         }
     }
 }

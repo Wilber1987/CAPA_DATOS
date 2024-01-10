@@ -26,7 +26,6 @@ namespace CAPA_DATOS
                 return CrearConexion(ConexionString);
             }
         }
-
         protected override IDbConnection CrearConexion(string ConexionString)
         {
             return new SqlConnection(ConexionString);
@@ -46,6 +45,32 @@ namespace CAPA_DATOS
             var da = new SqlDataAdapter((SqlCommand)comandoSql);
             return da;
         }
+        public override DataTable ExecuteProcedure(object Inst, List<object> Params)
+        {
+            var conec = CrearConexion(ConexionString);
+            var Command = ComandoSql(Inst.GetType().Name, conec);
+            Command.CommandType = CommandType.StoredProcedure;
+            conec.Open();
+            SqlCommandBuilder.DeriveParameters((SqlCommand)Command);
+            conec.Close();
+            if (Params?.Count != 0)
+            {
+                int i = 0;
+                foreach (var param in Params ?? new List<object>())
+                {
+                    if (Command != null)
+                    {
+                        SqlParameter? p = (SqlParameter?)Command.Parameters[i + 1];
+                        if (p != null)
+                            p.Value = param;
+                    }
+                    i++;
+                }
+            }
+            DataTable Table = TraerDatosSQL(Command);
+            return Table;
+        }
+
         protected override List<EntityProps> DescribeEntity(string entityName)
         {
             string DescribeQuery = @"SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, TABLE_SCHEMA
@@ -53,116 +78,16 @@ namespace CAPA_DATOS
                                     WHERE [TABLE_NAME] = '" + entityName
                                    + "' order by [ORDINAL_POSITION]";
             DataTable Table = TraerDatosSQL(DescribeQuery);
-            List<EntityProps> entityProps = ConvertDataTable<EntityProps>(Table, new EntityProps());
+            List<EntityProps> entityProps = AdapterUtil.ConvertDataTable<EntityProps>(Table, new EntityProps());
             if (entityProps.Count == 0)
             {
                 throw new Exception("La entidad buscada no existe: " + entityName);
             }
             return entityProps;
         }
-        protected override string? BuildInsertQueryByObject(object Inst)
-        {
-            string ColumnNames = "";
-            string Values = "";
-            Type _type = Inst.GetType();
-            PropertyInfo[] lst = _type.GetProperties();
-            List<EntityProps> entityProps = DescribeEntity(Inst.GetType().Name);
-
-            foreach (PropertyInfo oProperty in lst)
-            {
-                string AtributeName = oProperty.Name;
-                var AtributeValue = oProperty.GetValue(Inst);
-                var EntityProp = entityProps.Find(e => e.COLUMN_NAME == AtributeName);
-                if (AtributeValue != null && EntityProp != null)
-                {
-                    switch (EntityProp.DATA_TYPE)
-                    {
-                        case "nvarchar":
-                        case "varchar":
-                        case "char":
-                            ColumnNames = ColumnNames + AtributeName.ToString() + ",";
-                            JsonProp? json = (JsonProp?)Attribute.GetCustomAttribute(oProperty, typeof(JsonProp));
-                            if (json != null)
-                            {
-                                String jsonV = JsonConvert.SerializeObject(AtributeValue);
-                                Values = Values + "'" + JValue.Parse(jsonV).ToString(Formatting.Indented) + "',";
-                            }
-                            else
-                            {
-                                Values = Values + "'" + AtributeValue.ToString() + "',";
-                            }
-                            break;
-                        case "int":
-                        case "float":
-                            ColumnNames = ColumnNames + AtributeName.ToString() + ",";
-                            Values = Values + "cast ('" + AtributeValue?.ToString()?.Replace(",", ".") + "' as float),";
-                            break;
-                        case "decimal":
-                            ColumnNames = ColumnNames + AtributeName.ToString() + ",";
-                            Values = Values + "cast ('" + AtributeValue?.ToString()?.Replace(",", ".") + "' as decimal),";
-                            break;
-                        case "bigint":
-                        case "money":
-                        case "smallint":
-                            ColumnNames = ColumnNames + AtributeName.ToString() + ",";
-                            Values = Values + AtributeValue.ToString() + ",";
-                            break;
-                        case "bit":
-                            ColumnNames = ColumnNames + AtributeName.ToString() + ",";
-                            Values = Values + "'" + (AtributeValue.ToString() == "True" ? "1" : "0") + "',";
-                            break;
-                        case "datetime":
-                        case "date":
-                            ColumnNames = ColumnNames + AtributeName.ToString() + ",";
-                            Values = Values + "CONVERT(DATETIME,'" + ((DateTime)AtributeValue).ToString("yyyyMMdd HH:mm:ss") + "'),";
-                            break;
-                    }
-                }
-                else continue;
-
-            }
-            ColumnNames = ColumnNames.TrimEnd(',');
-            Values = Values.TrimEnd(',');
-            if (Values == "")
-            {
-                return null;
-            }
-            string QUERY = "INSERT INTO " + entityProps[0].TABLE_SCHEMA + "." + Inst.GetType().Name + "(" + ColumnNames + ") VALUES(" + Values + ") SELECT SCOPE_IDENTITY()";
-            LoggerServices.AddMessageInfo(QUERY);
-            return QUERY;
-        }
         protected override string? BuildUpdateQueryByObject(object Inst, string IdObject)
         {
-            string TableName = Inst.GetType().Name;
-            string Values = "";
-            string Conditions = "";
-            Type _type = Inst.GetType();
-            PropertyInfo[] lst = _type.GetProperties();
-            List<EntityProps> entityProps = DescribeEntity(Inst.GetType().Name);
-            int index = 0;
-            foreach (PropertyInfo oProperty in lst)
-            {
-                string AtributeName = oProperty.Name;
-                var AtributeValue = oProperty.GetValue(Inst);
-                var EntityProp = entityProps.Find(e => e.COLUMN_NAME == AtributeName);
-                if (AtributeValue != null && EntityProp != null)
-                {
-                    if (IdObject != AtributeName)
-                    {
-                        Values = BuildSetsForUpdate(Values, AtributeName, AtributeValue, EntityProp, oProperty);
-                    }
-                    else WhereConstruction(ref Conditions, ref index, AtributeName, AtributeValue);
-                }
-                else continue;
-            }
-            Values = Values.TrimEnd(',');
-            if (Values == "")
-            {
-                return null;
-            }
-            string strQuery = "UPDATE  " + entityProps[0].TABLE_SCHEMA + "." + TableName + " SET " + Values + Conditions;
-            LoggerServices.AddMessageInfo(strQuery);
-            return strQuery;
+            return BuildUpdateQueryByObject(Inst, new string[] { IdObject });
         }
         protected override string? BuildUpdateQueryByObject(object Inst, string[] WhereProps)
         {
@@ -389,7 +314,6 @@ namespace CAPA_DATOS
                 }
             }
         }
-
         private static void WhereConstruction(ref string CondicionString, ref int index,
             string AtributeName, PropertyInfo atribute, List<FilterData>? filterData = null)
         {
@@ -426,11 +350,11 @@ namespace CAPA_DATOS
                             break;
                         case "IN":
                             WhereOrAnd(ref CondicionString, ref index);
-                            CondicionString = CondicionString + AtributeName + " IN (" + BuildArrayIN(filter.Values, atributeType) + ") ";
+                            CondicionString = CondicionString + AtributeName + " IN (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
                             break;
                         case "NOT IN":
                             WhereOrAnd(ref CondicionString, ref index);
-                            CondicionString = CondicionString + AtributeName + " NOT IN (" + BuildArrayIN(filter.Values, atributeType) + ") ";
+                            CondicionString = CondicionString + AtributeName + " NOT IN (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
                             break;
                         default:
                             if ((atributeType == "string" || atributeType == "String") && filter.Values[0]?.ToString()?.Length < 200)
@@ -462,21 +386,16 @@ namespace CAPA_DATOS
         {
 
             if (!CondicionString.Contains("WHERE"))
-            {
                 CondicionString = " WHERE ";
-                //index++;
-            }
             else
-            {
-                CondicionString = CondicionString + " AND ";
-            }
+                CondicionString += " AND ";
         }
         //DATA SQUEMA
         public List<EntitySchema> databaseSchemas()
         {
             string DescribeQuery = @"SELECT TABLE_SCHEMA FROM [INFORMATION_SCHEMA].[TABLES]  group by TABLE_SCHEMA";
             DataTable Table = TraerDatosSQL(DescribeQuery);
-            var es = ConvertDataTable<EntitySchema>(Table, new EntitySchema());
+            var es = AdapterUtil.ConvertDataTable<EntitySchema>(Table, new EntitySchema());
             return es;
         }
 
@@ -484,7 +403,7 @@ namespace CAPA_DATOS
         {
             string DescribeQuery = @"SELECT TABLE_TYPE FROM [INFORMATION_SCHEMA].[TABLES]  group by TABLE_TYPE";
             DataTable Table = TraerDatosSQL(DescribeQuery);
-            var es = ConvertDataTable<EntitySchema>(Table, new EntitySchema());
+            var es = AdapterUtil.ConvertDataTable<EntitySchema>(Table, new EntitySchema());
             return es;
         }
         public List<EntitySchema> describeSchema(string schema, string type)
@@ -493,14 +412,14 @@ namespace CAPA_DATOS
                                     FROM [INFORMATION_SCHEMA].[TABLES]  
                                     where TABLE_SCHEMA = '" + schema + "' and TABLE_TYPE = '" + type + "'";
             DataTable Table = TraerDatosSQL(DescribeQuery);
-            var es = ConvertDataTable<EntitySchema>(Table, new EntitySchema());
+            var es = AdapterUtil.ConvertDataTable<EntitySchema>(Table, new EntitySchema());
             return es;
         }
         public EntityColumn? describePrimaryKey(string table, string column)
         {
             string DescribeQuery = @"exec sp_columns'" + table + "'";
             DataTable Table = TraerDatosSQL(DescribeQuery);
-            var es = ConvertDataTable<EntityColumn>(Table, new EntityColumn());
+            var es = AdapterUtil.ConvertDataTable<EntityColumn>(Table, new EntityColumn());
             return es.Find(e => e.COLUMN_NAME == column && e.TYPE_NAME.Contains("identity"));
         }
 
@@ -511,7 +430,7 @@ namespace CAPA_DATOS
                                     WHERE [TABLE_NAME] = '" + entityName
                                    + "' order by [ORDINAL_POSITION]";
             DataTable Table = TraerDatosSQL(DescribeQuery);
-            return ConvertDataTable<EntityProps>(Table, new EntityProps());
+            return AdapterUtil.ConvertDataTable<EntityProps>(Table, new EntityProps());
         }
 
         public List<OneToOneSchema> ManyToOneKeys(string entityName)
@@ -530,7 +449,7 @@ namespace CAPA_DATOS
                    ON f.object_id = fc.constraint_object_id   
                 WHERE f.parent_object_id = OBJECT_ID('" + entityName + "')";
             DataTable Table = TraerDatosSQL(DescribeQuery);
-            return ConvertDataTable<OneToOneSchema>(Table, new OneToOneSchema());
+            return AdapterUtil.ConvertDataTable<OneToOneSchema>(Table, new OneToOneSchema());
         }
 
         public Boolean isPrimary(string entityName, string column)
@@ -578,23 +497,18 @@ namespace CAPA_DATOS
             string DescribeQuery = $"EXEC sp_fkeys @pktable_name = N'{entityName}' ,@pktable_owner = N'{schema}';";
             //string DescribeQuery = @"exec sp_fkeys '" + entityName + "'";
             DataTable Table = TraerDatosSQL(DescribeQuery);
-            return ConvertDataTable<OneToManySchema>(Table, new OneToManySchema());
+            return AdapterUtil.ConvertDataTable<OneToManySchema>(Table, new OneToManySchema());
         }
 
-        public static string BuildArrayIN(List<string> conditions, string atributeType = "string")
+        public static string BuildArrayIN(List<string?> conditions, string atributeType = "string")
         {
             string CondicionString = "";
             foreach (string? Value in conditions)
             {
                 if ((atributeType == "string" || atributeType == "String" || atributeType == "DateTime") && Value?.Length < 200)
-                {
-                    //WhereOrAnd(ref CondicionString, ref index);
                     CondicionString = CondicionString + "'" + Value + "',";
-                } else {
-                    //WhereOrAnd(ref CondicionString, ref index);
+                else
                     CondicionString = CondicionString + Value?.ToString() + ",";
-                }
-                //CondicionString = CondicionString + Value + ",";
             }
             CondicionString = CondicionString.TrimEnd(',');
             return CondicionString;
