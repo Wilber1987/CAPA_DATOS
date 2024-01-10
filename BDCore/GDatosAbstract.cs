@@ -313,13 +313,12 @@ namespace CAPA_DATOS
         }
 
         #endregion
-        
+
         #region LECTURA DE OBJETOS
         public List<T> TakeList<T>(Object Inst, bool fullEntity, string CondSQL = "")
         {
             try
             {
-                LoggerServices.AddMessageInfo("-- > TakeList<T>(" + Inst.GetType().Name + ",fullEntity: " + fullEntity.ToString() + ", condition: " + CondSQL + ")");
                 DataTable Table = BuildTable(Inst, ref CondSQL, fullEntity, false);
                 List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
                 return ListD;
@@ -327,7 +326,7 @@ namespace CAPA_DATOS
             catch (Exception e)
             {
                 SQLMCon.Close();
-                LoggerServices.AddMessageError("ERROR: TakeList", e);
+                LoggerServices.AddMessageError($"ERROR: TakeList - {Inst.GetType().Name} - {fullEntity} - {CondSQL}", e);
                 throw;
             }
         }
@@ -335,22 +334,26 @@ namespace CAPA_DATOS
         {
             try
             {
-                LoggerServices.AddMessageInfo("-- > TakeList<T>(" + Inst.GetType().Name);
                 DataTable Table = TraerDatosSQL(queryString);
                 List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
                 return ListD;
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 SQLMCon.Close();
+                LoggerServices.AddMessageError($"ERROR: TakeList - {Inst.GetType().Name} - {queryString}", e);
                 throw;
             }
         }
 
         public T? TakeObject<T>(Object Inst, string CondSQL = "")
         {
-            LoggerServices.AddMessageInfo("-- > TakeObject<T>(Object Inst, bool fullEntity, string CondSQL = )");
-            DataTable Table = BuildTable(Inst, ref CondSQL, true, true);
+            string queryString = BuildSelectQuery(Inst, CondSQL, true, true);
+            if (!queryString.ToUpper().Contains(" WHERE "))
+            {
+                throw new Exception($"No es posible buscar el objeto la entidad {Inst.GetType().Name} requiere filtros o parametros con valores para hacer la compariva");
+            }
+            DataTable Table = TraerDatosSQL(queryString);
             if (Table.Rows.Count != 0)
             {
                 var CObject = AdapterUtil.ConvertRow<T>(Inst, Table.Rows[0]);

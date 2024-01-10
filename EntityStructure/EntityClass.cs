@@ -4,41 +4,20 @@ namespace CAPA_DATOS;
 public abstract class EntityClass : TransactionalClass
 {
     public List<FilterData>? filterData { get; set; }
-    public List<T> Get<T>()
+    public List<T> Get<T>(string condition = "")
     {
-        var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true);
+        var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true, condition);
         return Data.ToList() ?? new List<T>();
     }
-
     public List<T> GetAll<T>()
     {
         var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true);
         return Data.ToList() ?? new List<T>();
     }
-
-    public Boolean Exists<T>()
+    public List<T> Where<T>(params FilterData[] where_condition)
     {
+        filterData = where_condition.ToList();
         var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true);
-        return Data?.Count > 0;
-    }
-    public List<T> SimpleGet<T>()
-    {
-        var Data = SqlADOConexion.SQLM?.TakeList<T>(this, false);
-        return Data ?? new List<T>();
-    }
-    public static List<T> EndpointMethod<T>()
-    {
-        List<T> list = new List<T>();
-        return list;
-    }
-    public T? Find<T>()
-    {
-        var Data = SqlADOConexion.SQLM != null ? SqlADOConexion.SQLM.TakeObject<T>(this) : default(T);
-        return Data;
-    }
-    public List<T> Get<T>(string condition)
-    {
-        var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true, condition);
         return Data ?? new List<T>();
     }
     public List<T> Get_WhereIN<T>(string Field, string?[]? conditions)
@@ -55,7 +34,29 @@ public abstract class EntityClass : TransactionalClass
         var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true, Field + " NOT IN (" + condition + ")");
         return Data ?? new List<T>();
     }
-
+    public T? Find<T>(params FilterData[]? where_condition)
+    {
+        filterData = where_condition?.ToList();
+        var Data = SqlADOConexion.SQLM != null ? SqlADOConexion.SQLM.TakeObject<T>(this) : default(T);
+        return Data;
+    }
+    public Boolean Exists<T>()
+    {
+        var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true);
+        return Data?.Count > 0;
+    }
+    public List<T> SimpleGet<T>()
+    {
+        var Data = SqlADOConexion.SQLM?.TakeList<T>(this, false);
+        return Data ?? new List<T>();
+    }
+    public static List<T> EndpointMethod<T>()
+    {
+        List<T> list = new List<T>();
+        return list;
+    }
+    
+   
     private static string BuildArrayIN(string?[]? conditions)
     {
         string condition = "";

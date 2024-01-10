@@ -5,14 +5,13 @@ namespace CAPA_DATOS
         public string? PropName { get; set; }
         public string? FilterType { get; set; }
         public List<String?>? Values { get; set; }
-        public static FilterData In(string? propName, List<String?>? values)
+        public static FilterData In(string? propName, params String?[] values)
         {
-            return new FilterData { PropName = propName, FilterType = "in", Values = values };
+            return new FilterData { PropName = propName, FilterType = "in", Values = values.ToList() };
         }
-
-        public static FilterData NotIn(string? propName, List<String?>? values)
+        public static FilterData NotIn(string? propName,  params String?[] values)
         {
-            return new FilterData { PropName = propName, FilterType = "not in", Values = values };
+            return new FilterData { PropName = propName, FilterType = "not in", Values = values.ToList() };
         }
         public static FilterData Equal(string? propName, String? value)
         {
