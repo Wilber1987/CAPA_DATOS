@@ -22,11 +22,30 @@ namespace CAPA_DATOS
         protected abstract IDataAdapter CrearDataAdapterSql(IDbCommand comandoSql);
         protected abstract List<EntityProps> DescribeEntity(string entityName);
         public abstract DataTable ExecuteProcedure(object Inst, List<object> Params);
-        protected abstract string BuildSelectQuery(object Inst, string CondSQL,
-            bool fullEntity = true, bool isFind = true);
+        protected abstract (string queryResults, string queryCount) BuildSelectQuery(object Inst, string CondSQL,
+            bool fullEntity = true, bool isFind = true, string? orderBy = null, string? orderDir = null);
+
+        protected abstract (string queryResults, string queryCount) BuildSelectQueryPaginated(object Inst, string CondSQL,
+            int pageNum, int pageSize, string orderBy, string orderDir, bool fullEntity = true, bool isFind = true);
+
         protected abstract string? BuildUpdateQueryByObject(object Inst, string IdObject);
         protected abstract string? BuildUpdateQueryByObject(object Inst, string[] WhereProps);
         protected abstract string BuildDeleteQuery(object Inst);
+        protected abstract string BuildSetsForUpdate(string Values, string AtributeName,
+        object AtributeValue, EntityProps EntityProp, PropertyInfo oProperty);
+
+        public abstract List<EntitySchema> databaseSchemas();
+        public abstract List<EntitySchema> databaseTypes();
+        public abstract List<EntitySchema> describeSchema(string schema, string type);
+        public abstract EntityColumn? describePrimaryKey(string table, string column);
+        public abstract List<EntityProps> describeEntity(string entityName);
+        public abstract List<OneToOneSchema> ManyToOneKeys(string entityName);
+        public abstract Boolean isPrimary(string entityName, string column);
+        public abstract Boolean isForeinKey(string entityName, string column);
+        public abstract int evalKeyType(string entityName, string column, string keyType);
+        public abstract int keyInformation(string entityName, string keyType);
+        public abstract List<OneToManySchema> oneToManyKeys(string entityName, string schema = "dbo");
+
 
         #region ADO.NET METHODS
         public bool TestConnection()
@@ -348,7 +367,7 @@ namespace CAPA_DATOS
 
         public T? TakeObject<T>(Object Inst, string CondSQL = "")
         {
-            string queryString = BuildSelectQuery(Inst, CondSQL, true, true);
+            (string queryString, string queryCount) = BuildSelectQuery(Inst, CondSQL, true, true);
             if (!queryString.ToUpper().Contains(" WHERE "))
             {
                 throw new Exception($"No es posible buscar el objeto la entidad {Inst.GetType().Name} requiere filtros o parametros con valores para hacer la compariva");
@@ -367,11 +386,53 @@ namespace CAPA_DATOS
 
         protected private DataTable BuildTable(object Inst, ref string CondSQL, bool fullEntity = true, bool isFind = true)
         {
-            string queryString = BuildSelectQuery(Inst, CondSQL, fullEntity, isFind);
-            //LoggerServices.AddMessageInfo(queryString);
+            (string queryString, string queryCount) = BuildSelectQuery(Inst, CondSQL, fullEntity, isFind);
             DataTable Table = TraerDatosSQL(queryString);
             return Table;
         }
+        /*
+        * Interfaz de tipo que permitirá retornar una lista del tipo específico de la entidad 
+        * que correspondería, en lugar de una lista genérica.
+        *
+        * A diferencia del anterior de paginación, acá se reciben los dos string de SQL directo para ejecutarse
+        * (Raw SQL).
+        */
+        public void TakeListPaginated<T>(Object Inst, string queryString, string queryCount, out List<T> data, out int totalRecordsQuery)
+        {
+            try
+            {
+                (DataTable Table, int totalRecords) = BuildTablePaginated(queryString, queryCount);
+                List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
+                data = ListD;
+                totalRecordsQuery = totalRecords;
+            }
+            catch (Exception)
+            {
+                SQLMCon.Close();
+                throw;
+            }
+        }
+        /*
+        * Utlizado para la lectura de los datos
+        */
+        protected (DataTable, int) BuildTablePaginated(object Inst, ref string CondSQL, int pageNum, int pageSize, string orderBy, string orderDir,
+            bool fullEntity = true, bool isFind = true)
+        {
+            (string queryString, string queryCount) = BuildSelectQueryPaginated(Inst, CondSQL, pageNum, pageSize, orderBy, orderDir, fullEntity, isFind);
+            return BuildTablePaginated(queryString, queryCount);
+        }
+
+        /*
+        * Utlizado para la lectura de los datos (Esta variante sirve para cuando ya viene el string SQL)
+        */
+        protected (DataTable, int) BuildTablePaginated(string queryString, string queryCount)
+        {
+            LoggerServices.AddMessageInfo(queryString);
+            DataTable Table = TraerDatosSQL(queryString);
+            int totalRecords = TraerDatosSQL(queryCount).Rows.Count;
+            return (Table, totalRecords);
+        }
+
         public List<T> TakeListWithProcedure<T>(Object Inst, List<Object> Params)
         {
             try
@@ -386,6 +447,7 @@ namespace CAPA_DATOS
                 throw;
             }
         }
+
         #endregion
 
         #region  QUERYBUILDER IMPLEMANTATIONS
@@ -460,7 +522,138 @@ namespace CAPA_DATOS
             LoggerServices.AddMessageInfo(QUERY);
             return QUERY;
         }
+        protected string tableAliaGenerator()
+        {
+            char ta = (char)(((int)'A') + new Random().Next(26));
+            char ta2 = (char)(((int)'A') + new Random().Next(26));
+            char ta3 = (char)(((int)'A') + new Random().Next(26));
+            char ta4 = (char)(((int)'A') + new Random().Next(26));
+            char ta5 = (char)(((int)'A') + new Random().Next(26));
+            return ta.ToString() + ta2 + ta3 + "_" + ta4 + "_" + ta5;
+        }
+        protected void WhereConstruction(ref string CondicionString, ref int index, string AtributeName, object AtributeValue)
+        {
+            if (AtributeValue != null)
+            {
+                if (AtributeValue?.GetType() == typeof(string) && AtributeValue?.ToString()?.Length < 200)
+                {
+                    WhereOrAnd(ref CondicionString, ref index);
+                    CondicionString = CondicionString + AtributeName + " LIKE '%" + AtributeValue.ToString() + "%' ";
+                }
+                else if (AtributeValue?.GetType() == typeof(DateTime))
+                {
+                    WhereOrAnd(ref CondicionString, ref index);
+                    CondicionString = CondicionString + AtributeName
+                        + "= '" + ((DateTime)AtributeValue).ToString("yyyy/MM/dd") + "' ";
+                }
+                else if (AtributeValue?.GetType() == typeof(int) || AtributeValue?.GetType() == typeof(int?))
+                {
+                    WhereOrAnd(ref CondicionString, ref index);
+                    CondicionString = CondicionString + AtributeName + "=" + AtributeValue?.ToString() + " ";
+                }
+                else if (AtributeValue?.GetType() == typeof(Double))
+                {
+                    WhereOrAnd(ref CondicionString, ref index);
+                    CondicionString = CondicionString + AtributeName + "= cast('" + AtributeValue?.ToString()?.Replace(",", ".") + "' as float)  ";
+                }
+                else if (AtributeValue?.GetType() == typeof(Decimal))
+                {
+                    WhereOrAnd(ref CondicionString, ref index);
+                    CondicionString = CondicionString + AtributeName + "= cast('" + AtributeValue?.ToString()?.Replace(",", ".") + "' as decimal)  ";
+                }
+            }
+        }
+        protected void WhereConstruction(ref string CondicionString, ref int index,
+            string AtributeName, PropertyInfo atribute, List<FilterData>? filterData = null)
+        {
+            if (filterData != null)
+            {
+                FilterData? filter = filterData?.Find(f => f?.PropName == AtributeName);
+                if (filter != null && filter.Values != null && filter.Values.Count > 0)
+                {
+                    // WhereOrAnd(ref CondicionString, ref index);
+                    var propertyType = Nullable.GetUnderlyingType(atribute?.PropertyType) ?? atribute?.PropertyType;
+                    string? atributeType = propertyType?.Name;
+                    switch (filter.FilterType?.ToUpper())
+                    {
+                        case "BETWEEN":
+                            if (atributeType == "DateTime")
+                            {
+                                WhereOrAnd(ref CondicionString, ref index);
+                                CondicionString = CondicionString + " ( " +
+                                    (filter.Values[0] != null ? AtributeName + "  >= '" + filter.Values[0] + "'  " : " ") +
+                                    (filter.Values.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
+                                    (filter.Values.Count > 1 ? AtributeName + " <= '" + filter.Values[1] + "' ) " : ") ");
+                            }
+                            else if (atributeType == "Int32"
+                                                || atributeType == "Double"
+                                                || atributeType == "Decimal"
+                                                || atributeType == "int")
+                            {
+                                WhereOrAnd(ref CondicionString, ref index);
+                                CondicionString = CondicionString + " ( " +
+                                   (filter.Values[0] != null ? AtributeName + "  >= " + filter.Values[0] + "  " : " ") +
+                                   (filter.Values.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
+                                   (filter.Values.Count > 1 ? AtributeName + " <= " + filter.Values[1] + " ) " : ") ");
+                            }
+                            break;
+                        case "IN":
+                            WhereOrAnd(ref CondicionString, ref index);
+                            CondicionString = CondicionString + AtributeName + " IN (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
+                            break;
+                        case "NOT IN":
+                            WhereOrAnd(ref CondicionString, ref index);
+                            CondicionString = CondicionString + AtributeName + " NOT IN (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
+                            break;
+                        default:
+                            if ((atributeType == "string" || atributeType == "String") && filter.Values[0]?.ToString()?.Length < 200)
+                            {
+                                WhereOrAnd(ref CondicionString, ref index);
+                                CondicionString = CondicionString + AtributeName + " LIKE '%" + filter.Values[0] + "%' ";
+                            }
+                            else if (atributeType == "DateTime")
+                            {
+                                WhereOrAnd(ref CondicionString, ref index);
+                                CondicionString = CondicionString + AtributeName
+                                    + "= '" + filter.Values[0] + "' ";
+                            }
+                            else if (atributeType == "int"
+                                                || atributeType == "Double"
+                                                || atributeType == "Decimal"
+                                                || atributeType == "int")
+                            {
+                                WhereOrAnd(ref CondicionString, ref index);
+                                CondicionString = CondicionString + AtributeName + "=" + filter.Values[0]?.ToString() + " ";
+                            }
+                            break;
+                    }
+                }
+            }
+        }
+        protected void WhereOrAnd(ref string CondicionString, ref int index)
+        {
+            if (!CondicionString.Contains("WHERE"))
+                CondicionString = " WHERE ";
+            else
+                CondicionString += " AND ";
+        }
+        public static string BuildArrayIN(List<string?> conditions, string atributeType = "string")
+        {
+            string CondicionString = "";
+            foreach (string? Value in conditions)
+            {
+                if ((atributeType == "string" || atributeType == "String" || atributeType == "DateTime") && Value?.Length < 200)
+                    CondicionString = CondicionString + "'" + Value + "',";
+                else
+                    CondicionString = CondicionString + Value?.ToString() + ",";
+            }
+            CondicionString = CondicionString.TrimEnd(',');
+            return CondicionString;
+        }
+        //DATA SQUEMA
         #endregion
+
+
     }
 
 }

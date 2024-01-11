@@ -1,36 +1,38 @@
-﻿using System.Reflection;
+﻿using System.Data;
+using System.Reflection;
 
 namespace CAPA_DATOS;
 public abstract class EntityClass : TransactionalClass
 {
     public List<FilterData>? filterData { get; set; }
+
     public List<T> Get<T>(string condition = "")
     {
-        var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true, condition);
+        var Data = MTConnection?.TakeList<T>(this, true, condition);
         return Data.ToList() ?? new List<T>();
     }
     public List<T> GetAll<T>()
     {
-        var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true);
+        var Data = MTConnection?.TakeList<T>(this, true);
         return Data.ToList() ?? new List<T>();
     }
     public List<T> Where<T>(params FilterData[] where_condition)
     {
         filterData = where_condition.ToList();
-        var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true);
+        var Data = MTConnection?.TakeList<T>(this, true);
         return Data ?? new List<T>();
     }
     public List<T> Get_WhereIN<T>(string Field, string?[]? conditions)
     {
         string condition = BuildArrayIN(conditions);
         //string? condition =  SqlServerGDatos.BuildArrayIN(conditions.ToList());
-        var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true, Field + " IN (" + condition + ")");
+        var Data = MTConnection?.TakeList<T>(this, true, Field + " IN (" + condition + ")");
         return Data ?? new List<T>();
     }
     public List<T> Get_WhereNotIN<T>(string Field, string[] conditions)
     {
         string condition = BuildArrayIN(conditions);
-        var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true, Field + " NOT IN (" + condition + ")");
+        var Data = MTConnection?.TakeList<T>(this, true, Field + " NOT IN (" + condition + ")");
         return Data ?? new List<T>();
     }
     public T? Find<T>(params FilterData[]? where_condition)
@@ -41,12 +43,12 @@ public abstract class EntityClass : TransactionalClass
     }
     public Boolean Exists<T>()
     {
-        var Data = SqlADOConexion.SQLM?.TakeList<T>(this, true);
+        var Data = MTConnection?.TakeList<T>(this, true);
         return Data?.Count > 0;
     }
     public List<T> SimpleGet<T>()
     {
-        var Data = SqlADOConexion.SQLM?.TakeList<T>(this, false);
+        var Data = MTConnection?.TakeList<T>(this, false);
         return Data ?? new List<T>();
     }
     public static List<T> EndpointMethod<T>()
@@ -54,8 +56,8 @@ public abstract class EntityClass : TransactionalClass
         List<T> list = new List<T>();
         return list;
     }
-    
-   
+
+
     private static string BuildArrayIN(string?[]? conditions)
     {
         string condition = "";
@@ -75,14 +77,14 @@ public abstract class EntityClass : TransactionalClass
     {
         try
         {
-            SqlADOConexion.SQLM?.BeginTransaction();
-            var result = SqlADOConexion.SQLM?.InsertObject(this);
-            SqlADOConexion.SQLM?.CommitTransaction();
+            MTConnection?.BeginTransaction();
+            var result = MTConnection?.InsertObject(this);
+            MTConnection?.CommitTransaction();
             return result;
         }
         catch (Exception e)
         {
-            SqlADOConexion.SQLM?.RollBackTransaction();
+            MTConnection?.RollBackTransaction();
             LoggerServices.AddMessageError("ERROR: Save entity", e);
             throw;
         }
@@ -123,14 +125,14 @@ public abstract class EntityClass : TransactionalClass
     {
         try
         {
-            SqlADOConexion.SQLM?.BeginTransaction();
-            SqlADOConexion.SQLM?.UpdateObject(this, Id);
-            SqlADOConexion.SQLM?.CommitTransaction();
+            MTConnection?.BeginTransaction();
+            MTConnection?.UpdateObject(this, Id);
+            MTConnection?.CommitTransaction();
             return true;
         }
         catch (Exception e)
         {
-            SqlADOConexion.SQLM?.RollBackTransaction();
+            MTConnection?.RollBackTransaction();
             LoggerServices.AddMessageError("ERROR: Update entity ID", e);
             throw;
         }
@@ -139,14 +141,14 @@ public abstract class EntityClass : TransactionalClass
     {
         try
         {
-            SqlADOConexion.SQLM?.BeginTransaction();
-            SqlADOConexion.SQLM?.UpdateObject(this, Id);
-            SqlADOConexion.SQLM?.CommitTransaction();
+            MTConnection?.BeginTransaction();
+            MTConnection?.UpdateObject(this, Id);
+            MTConnection?.CommitTransaction();
             return true;
         }
         catch (Exception e)
         {
-            SqlADOConexion.SQLM?.RollBackTransaction();
+            MTConnection?.RollBackTransaction();
             LoggerServices.AddMessageError("ERROR: Update entity []ID", e);
             throw;
         }
@@ -155,14 +157,14 @@ public abstract class EntityClass : TransactionalClass
     {
         try
         {
-            SqlADOConexion.SQLM?.BeginTransaction();
-            SqlADOConexion.SQLM?.Delete(this);
-            SqlADOConexion.SQLM?.CommitTransaction();
+            MTConnection?.BeginTransaction();
+            MTConnection?.Delete(this);
+            MTConnection?.CommitTransaction();
             return true;
         }
         catch (Exception e)
         {
-            SqlADOConexion.SQLM?.RollBackTransaction();
+            MTConnection?.RollBackTransaction();
             LoggerServices.AddMessageError("ERROR: Update entity Delete", e);
             throw;
         }
@@ -173,7 +175,7 @@ public abstract class StoreProcedureClass : TransactionalClass
     public List<Object>? Parameters { get; set; }
     public ResponseService Execute()
     {
-        var DataProcedure = SqlADOConexion.SQLM?.ExecuteProcedure(this, Parameters);
+        var DataProcedure = MTConnection?.ExecuteProcedure(this, Parameters);
         return new ResponseService
         {
             message = "Procedimiento ejecutado correctamente"
@@ -181,24 +183,36 @@ public abstract class StoreProcedureClass : TransactionalClass
     }
     public List<T> Get<T>()
     {
-        var DataProcedure = SqlADOConexion.SQLM?.TakeListWithProcedure<T>(this, Parameters);
+        var DataProcedure = MTConnection?.TakeListWithProcedure<T>(this, Parameters);
         return DataProcedure.ToList() ?? new List<T>();
     }
 }
 public abstract class TransactionalClass
 {
+    private GDatosAbstract? Conection;
+    protected GDatosAbstract? MTConnection
+    {
+        get
+        {
+            if (this.Conection != null)
+                return this.Conection;
+            else
+                return SqlADOConexion.SQLM;
+        }
+        set { Conection = value; }
+    }
 
     //TRANSACCIONES
     public void BeginGlobalTransaction()
     {
-        SqlADOConexion.SQLM?.BeginGlobalTransaction();
+        MTConnection?.BeginGlobalTransaction();
     }
     public void CommitGlobalTransaction()
     {
-        SqlADOConexion.SQLM?.CommitGlobalTransaction();
+        MTConnection?.CommitGlobalTransaction();
     }
     public void RollBackGlobalTransaction()
     {
-        SqlADOConexion.SQLM?.RollBackGlobalTransaction();
+        MTConnection?.RollBackGlobalTransaction();
     }
 }
