@@ -605,6 +605,40 @@ namespace CAPA_DATOS
                             WhereOrAnd(ref CondicionString, ref index);
                             CondicionString = CondicionString + AtributeName + " NOT IN (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
                             break;
+                        case "LIKE":
+                            WhereOrAnd(ref CondicionString, ref index);
+                            CondicionString = CondicionString + AtributeName + " LIKE '%" + filter.Values[0] + "%' ";
+                            break;
+                        case "!=":
+                            if ((atributeType == "string" || atributeType == "String") && filter.Values[0]?.ToString()?.Length < 200)
+                            {
+                                WhereOrAnd(ref CondicionString, ref index);
+                                CondicionString = CondicionString + AtributeName + " != '" + filter.Values[0] + "' ";
+                            }
+                            else if (atributeType == "int"
+                                                || atributeType == "Double"
+                                                || atributeType == "Decimal"
+                                                || atributeType == "int")
+                            {
+                                WhereOrAnd(ref CondicionString, ref index);
+                                CondicionString = CondicionString + AtributeName + "!=" + filter.Values[0]?.ToString() + " ";
+                            }
+                            break;
+                        case "=":
+                            if ((atributeType == "string" || atributeType == "String") && filter.Values[0]?.ToString()?.Length < 200)
+                            {
+                                WhereOrAnd(ref CondicionString, ref index);
+                                CondicionString = CondicionString + AtributeName + " = '" + filter.Values[0] + "' ";
+                            }
+                            else if (atributeType == "int"
+                                                || atributeType == "Double"
+                                                || atributeType == "Decimal"
+                                                || atributeType == "int")
+                            {
+                                WhereOrAnd(ref CondicionString, ref index);
+                                CondicionString = CondicionString + AtributeName + "=" + filter.Values[0]?.ToString() + " ";
+                            }
+                            break;
                         default:
                             if ((atributeType == "string" || atributeType == "String") && filter.Values[0]?.ToString()?.Length < 200)
                             {
