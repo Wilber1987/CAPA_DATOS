@@ -141,11 +141,20 @@ namespace CAPA_DATOS
         }
         public DataTable TraerDatosSQL(string queryString)
         {
-            DataSet ObjDS = new DataSet();
-            var comando = ComandoSql(queryString, SQLMCon);
-            comando.Transaction = this.MTransaccion;
-            CrearDataAdapterSql(comando).Fill(ObjDS);
-            return ObjDS.Tables[0].Copy();
+            try
+            {
+                DataSet ObjDS = new DataSet();
+                var comando = ComandoSql(queryString, SQLMCon);
+                comando.Transaction = this.MTransaccion;
+                CrearDataAdapterSql(comando).Fill(ObjDS);
+                return ObjDS.Tables[0].Copy();
+            }
+            catch (System.Exception)
+            {
+                Console.Write(queryString);
+                throw;
+            }
+
         }
         public DataTable TraerDatosSQL(IDbCommand Command)
         {
@@ -563,107 +572,65 @@ namespace CAPA_DATOS
                 }
             }
         }
-        protected void WhereConstruction(ref string CondicionString, ref int index,
-            string AtributeName, PropertyInfo atribute, List<FilterData>? filterData = null)
+
+        protected string SetFilterValueCondition(PropertyInfo[] props, FilterData filter)
         {
-            if (filterData != null)
+            string CondicionString = "";
+            var prop = props.ToList().Find(p => p.Name.Equals(filter?.PropName));
+            string atributeType = "";
+            string AtributeName = "";
+            if (prop != null)
             {
-                FilterData? filter = filterData?.Find(f => f?.PropName == AtributeName);
-                if (filter != null && filter.Values != null && filter.Values.Count > 0)
-                {
-                    // WhereOrAnd(ref CondicionString, ref index);
-                    var propertyType = Nullable.GetUnderlyingType(atribute?.PropertyType) ?? atribute?.PropertyType;
-                    string? atributeType = propertyType?.Name;
-                    switch (filter.FilterType?.ToUpper())
-                    {
-                        case "BETWEEN":
-                            if (atributeType == "DateTime")
-                            {
-                                WhereOrAnd(ref CondicionString, ref index);
-                                CondicionString = CondicionString + " ( " +
-                                    (filter.Values[0] != null ? AtributeName + "  >= '" + filter.Values[0] + "'  " : " ") +
-                                    (filter.Values.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
-                                    (filter.Values.Count > 1 ? AtributeName + " <= '" + filter.Values[1] + "' ) " : ") ");
-                            }
-                            else if (atributeType == "Int32"
-                                                || atributeType == "Double"
-                                                || atributeType == "Decimal"
-                                                || atributeType == "int")
-                            {
-                                WhereOrAnd(ref CondicionString, ref index);
-                                CondicionString = CondicionString + " ( " +
-                                   (filter.Values[0] != null ? AtributeName + "  >= " + filter.Values[0] + "  " : " ") +
-                                   (filter.Values.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
-                                   (filter.Values.Count > 1 ? AtributeName + " <= " + filter.Values[1] + " ) " : ") ");
-                            }
-                            break;
-                        case "IN":
-                            WhereOrAnd(ref CondicionString, ref index);
-                            CondicionString = CondicionString + AtributeName + " IN (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
-                            break;
-                        case "NOT IN":
-                            WhereOrAnd(ref CondicionString, ref index);
-                            CondicionString = CondicionString + AtributeName + " NOT IN (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
-                            break;
-                        case "LIKE":
-                            WhereOrAnd(ref CondicionString, ref index);
-                            CondicionString = CondicionString + AtributeName + " LIKE '%" + filter.Values[0] + "%' ";
-                            break;
-                        case "!=":
-                            if ((atributeType == "string" || atributeType == "String") && filter.Values[0]?.ToString()?.Length < 200)
-                            {
-                                WhereOrAnd(ref CondicionString, ref index);
-                                CondicionString = CondicionString + AtributeName + " != '" + filter.Values[0] + "' ";
-                            }
-                            else if (atributeType == "int"
-                                                || atributeType == "Double"
-                                                || atributeType == "Decimal"
-                                                || atributeType == "int")
-                            {
-                                WhereOrAnd(ref CondicionString, ref index);
-                                CondicionString = CondicionString + AtributeName + "!=" + filter.Values[0]?.ToString() + " ";
-                            }
-                            break;
-                        case "=":
-                            if ((atributeType == "string" || atributeType == "String") && filter.Values[0]?.ToString()?.Length < 200)
-                            {
-                                WhereOrAnd(ref CondicionString, ref index);
-                                CondicionString = CondicionString + AtributeName + " = '" + filter.Values[0] + "' ";
-                            }
-                            else if (atributeType == "int"
-                                                || atributeType == "Double"
-                                                || atributeType == "Decimal"
-                                                || atributeType == "int")
-                            {
-                                WhereOrAnd(ref CondicionString, ref index);
-                                CondicionString = CondicionString + AtributeName + "=" + filter.Values[0]?.ToString() + " ";
-                            }
-                            break;
-                        default:
-                            if ((atributeType == "string" || atributeType == "String") && filter.Values[0]?.ToString()?.Length < 200)
-                            {
-                                WhereOrAnd(ref CondicionString, ref index);
-                                CondicionString = CondicionString + AtributeName + " LIKE '%" + filter.Values[0] + "%' ";
-                            }
-                            else if (atributeType == "DateTime")
-                            {
-                                WhereOrAnd(ref CondicionString, ref index);
-                                CondicionString = CondicionString + AtributeName
-                                    + "= '" + filter.Values[0] + "' ";
-                            }
-                            else if (atributeType == "int"
-                                                || atributeType == "Double"
-                                                || atributeType == "Decimal"
-                                                || atributeType == "int")
-                            {
-                                WhereOrAnd(ref CondicionString, ref index);
-                                CondicionString = CondicionString + AtributeName + "=" + filter.Values[0]?.ToString() + " ";
-                            }
-                            break;
-                    }
-                }
+                atributeType = prop.GetType().Name;
+                AtributeName = prop.Name;
             }
+            switch (filter.FilterType?.ToUpper())
+            {
+                case "AND" :case "OR":
+                    if (filter.Filters != null && filter.Filters.Count != 0)
+                    {
+                        CondicionString += $" ({string.Join($" {filter.FilterType} ", filter.Filters.Select(f => SetFilterValueCondition(props, f)))})";
+                    }
+                    break;
+                case "BETWEEN":
+                    if (atributeType == "DateTime")
+                    {
+                        CondicionString = CondicionString + " ( " +
+                            (filter?.Values?[0] != null ? AtributeName + "  >= '" + filter.Values[0] + "'  " : " ") +
+                            (filter?.Values?.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
+                            (filter?.Values?.Count > 1 ? AtributeName + " <= '" + filter.Values[1] + "' ) " : ") ");
+                    }
+                    else if (atributeType == "Int32"
+                                        || atributeType == "Double"
+                                        || atributeType == "Decimal"
+                                        || atributeType == "int")
+                    {
+                        CondicionString = CondicionString + " ( " +
+                           (filter?.Values?[0] != null ? AtributeName + "  >= " + filter.Values[0] + "  " : " ") +
+                           (filter?.Values?.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
+                           (filter?.Values?.Count > 1 ? AtributeName + " <= " + filter.Values[1] + " ) " : ") ");
+                    }
+                    break;
+                case "IN":
+                case "NOT IN":
+                    CondicionString = CondicionString + AtributeName + $" {filter?.FilterType} (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
+                    break;
+                case "LIKE":
+                    CondicionString = CondicionString + AtributeName + " LIKE '%" + filter?.Values?[0] + "%' ";
+                    break;
+                default:                    
+                    //if ((atributeType == "string" || atributeType == "String" || atributeType == "DateTime") && Value?.Length < 200)
+                    if (atributeType == "int" || atributeType == "Double" || atributeType == "Decimal" || atributeType == "int")
+                        CondicionString += $" {AtributeName} {filter?.FilterType} {filter?.Values?[0]} ";
+                    else
+                        CondicionString += $" {AtributeName} {filter.FilterType} '{filter?.Values?[0]}' ";
+                    break;
+            }
+
+            return CondicionString;
         }
+
+
         protected void WhereOrAnd(ref string CondicionString, ref int index)
         {
             if (!CondicionString.Contains("WHERE"))
@@ -676,10 +643,12 @@ namespace CAPA_DATOS
             string CondicionString = "";
             foreach (string? Value in conditions)
             {
-                if ((atributeType == "string" || atributeType == "String" || atributeType == "DateTime") && Value?.Length < 200)
-                    CondicionString = CondicionString + "'" + Value + "',";
-                else
+                //if ((atributeType == "string" || atributeType == "String" || atributeType == "DateTime") && Value?.Length < 200)
+                if (atributeType == "int" || atributeType == "Double" || atributeType == "Decimal" || atributeType == "int")
                     CondicionString = CondicionString + Value?.ToString() + ",";
+                else
+                    CondicionString = CondicionString + "'" + Value + "',";
+
             }
             CondicionString = CondicionString.TrimEnd(',');
             return CondicionString;

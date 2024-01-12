@@ -4,30 +4,121 @@ namespace CAPA_DATOS
     {
         public string? PropName { get; set; }
         public string? FilterType { get; set; }
+        public List<FilterData>? Filters { get; set; }
         public List<String?>? Values { get; set; }
-        public static FilterData In(string? propName, params String?[] values)
+        public static FilterData In(string? propName, params object?[] values)
         {
-            return new FilterData { PropName = propName, FilterType = "in", Values = values.ToList() };
+            return new FilterData { PropName = propName, FilterType = "in", Values = values.Select(v => v?.ToString()).ToList() };
         }
-        public static FilterData NotIn(string? propName,  params String?[] values)
+        public static FilterData NotIn(string? propName, params object?[] values)
         {
-            return new FilterData { PropName = propName, FilterType = "not in", Values = values.ToList() };
+            return new FilterData { PropName = propName, FilterType = "not in", Values = values.Select(v => v?.ToString()).ToList() };
         }
+        /*EQUALS*/
         public static FilterData Equal(string? propName, String? value)
         {
             return new FilterData { PropName = propName, FilterType = "=", Values = new List<string?> { value } };
         }
-        public static FilterData Like(string? propName, String? value)
+        public static FilterData Equal(string? propName, int? value)
         {
-            return new FilterData { PropName = propName, FilterType = "like", Values = new List<string?> { value } };
+            return new FilterData { PropName = propName, FilterType = "=", Values = new List<string?> { value.ToString() } };
         }
+        public static FilterData Equal(string? propName, object? value)
+        {
+            return new FilterData { PropName = propName, FilterType = "=", Values = new List<string?> { value?.ToString() } };
+        }
+        /*GREATER*/
+        public static FilterData Greater(string? propName, DateTime? value)
+        {
+            return new FilterData { PropName = propName, FilterType = ">", Values = new List<string?> { value.ToString() } };
+        }
+        public static FilterData Greater(string? propName, int? value)
+        {
+            return new FilterData { PropName = propName, FilterType = ">", Values = new List<string?> { value.ToString() } };
+        }
+        public static FilterData Greater(string? propName, object? value)
+        {
+            return new FilterData { PropName = propName, FilterType = ">", Values = new List<string?> { value?.ToString() } };
+        }
+         /*GREATER EQUAL*/
+        public static FilterData GreaterEqual(string? propName, DateTime? value)
+        {
+            return new FilterData { PropName = propName, FilterType = ">=", Values = new List<string?> { value.ToString() } };
+        }
+        public static FilterData GreaterEqual(string? propName, int? value)
+        {
+            return new FilterData { PropName = propName, FilterType = ">=", Values = new List<string?> { value.ToString() } };
+        }
+        public static FilterData GreaterEqual(string? propName, object? value)
+        {
+            return new FilterData { PropName = propName, FilterType = ">=", Values = new List<string?> { value?.ToString() } };
+        }
+         /*LESS*/
+        public static FilterData Less(string? propName, DateTime? value)
+        {
+            return new FilterData { PropName = propName, FilterType = "<", Values = new List<string?> { value.ToString() } };
+        }
+        public static FilterData Less(string? propName, int? value)
+        {
+            return new FilterData { PropName = propName, FilterType = "<", Values = new List<string?> { value.ToString() } };
+        }
+        public static FilterData Less(string? propName, object? value)
+        {
+            return new FilterData { PropName = propName, FilterType = "<", Values = new List<string?> { value?.ToString() } };
+        }
+         /*LESS EQUAL*/
+        public static FilterData LessEqual(string? propName, DateTime? value)
+        {
+            return new FilterData { PropName = propName, FilterType = "<=", Values = new List<string?> { value.ToString() } };
+        }
+        public static FilterData LessEqual(string? propName, int? value)
+        {
+            return new FilterData { PropName = propName, FilterType = "<=", Values = new List<string?> { value.ToString() } };
+        }
+        public static FilterData LessEqual(string? propName, object? value)
+        {
+            return new FilterData { PropName = propName, FilterType = "<=", Values = new List<string?> { value?.ToString() } };
+        }
+        /*DISTINCS*/
         public static FilterData Distinc(string? propName, String? value)
         {
             return new FilterData { PropName = propName, FilterType = "!=", Values = new List<string?> { value } };
         }
-        public static FilterData Between(string? propName, String? value, String? value2)
+        public static FilterData Distinc(string? propName, int? value)
         {
-            return new FilterData { PropName = propName, FilterType = "BETWEEN", Values = new List<string?> { value , value2} };
+            return new FilterData { PropName = propName, FilterType = "!=", Values = new List<string?> { value.ToString() } };
+        }
+        public static FilterData Distinc(string? propName, object? value)
+        {
+            return new FilterData { PropName = propName, FilterType = "!=", Values = new List<string?> { value?.ToString() } };
+        }
+        /*LIKE*/
+        public static FilterData Like(string? propName, String? value)
+        {
+            return new FilterData { PropName = propName, FilterType = "like", Values = new List<string?> { value } };
+        }
+
+        /*Between*/
+        public static FilterData Between(string? propName, DateTime value, DateTime value2)
+        {
+            return new FilterData { PropName = propName, FilterType = "BETWEEN", Values = new List<string?> { value.ToString(), value2.ToString() } };
+        }
+        public static FilterData Between(string? propName, int value, int value2)
+        {
+            return new FilterData { PropName = propName, FilterType = "BETWEEN", Values = new List<string?> { value.ToString(), value2.ToString() } };
+        }
+        public static FilterData Between(string? propName, double value, double value2)
+        {
+            return new FilterData { PropName = propName, FilterType = "BETWEEN", Values = new List<string?> { value.ToString(), value2.ToString() } };
+        }
+        /*Concatenaciones*/
+        public static FilterData Or(string? propName, params FilterData[] where_condition)
+        {
+            return new FilterData { PropName = propName, FilterType = "or", Filters = where_condition.ToList() };
+        }
+        public static FilterData And(string? propName, params FilterData[] where_condition)
+        {
+            return new FilterData { PropName = propName, FilterType = "and", Filters = where_condition.ToList() };
         }
     }
 }

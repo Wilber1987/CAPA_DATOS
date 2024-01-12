@@ -171,10 +171,6 @@ namespace CAPA_DATOS
                     {
                         WhereConstruction(ref CondicionString, ref index, AtributeName, AtributeValue);
                     }
-                    if (filterData != null && filterData.GetValue(Inst) != null)
-                    {
-                        WhereConstruction(ref CondicionString, ref index, AtributeName, oProperty, (List<FilterData>?)filterData.GetValue(Inst));
-                    }
                 }
                 else if (manyToOne != null && fullEntity)
                 {
@@ -209,7 +205,17 @@ namespace CAPA_DATOS
                 }
 
             }
+            if (filterData != null && filterData.GetValue(Inst) != null)
+            {                
+                foreach (FilterData filter in (List<FilterData>?)filterData.GetValue(Inst) ?? new List<FilterData>())
+                {
+                    WhereOrAnd(ref CondicionString, ref index);
+                    CondicionString += SetFilterValueCondition(lst, filter);
+                }                
+            }
+
             CondicionString = CondicionString.TrimEnd(new char[] { '0', 'R' });
+
             if (CondicionString == "" && CondSQL != "")
             {
                 CondicionString = " WHERE ";
@@ -234,7 +240,8 @@ namespace CAPA_DATOS
             string queryStringCount = $" SELECT count(*) FROM {entityProps[0].TABLE_SCHEMA}.{Inst?.GetType().Name} as {tableAlias} {CondicionString} {CondSQL};";
 
             return (queryString, queryStringCount);
-        }
+        }       
+
         protected override string BuildSetsForUpdate(string Values, string AtributeName,
         object AtributeValue, EntityProps EntityProp, PropertyInfo oProperty)
         {
