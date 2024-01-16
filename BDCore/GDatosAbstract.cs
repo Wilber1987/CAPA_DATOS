@@ -90,10 +90,14 @@ namespace CAPA_DATOS
             {
                 return;
             }
-            LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
-            this.MTransaccion?.Commit();
-            SQLMCon.Close();
-            MTConnection = null;
+            else if (this.MTransaccion != null)
+            {
+                LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
+                this.MTransaccion?.Commit();
+                SQLMCon.Close();
+                MTConnection = null;
+            }
+
         }
         public void RollBackTransaction()
         {
@@ -101,10 +105,14 @@ namespace CAPA_DATOS
             {
                 return;
             }
-            this.MTransaccion?.Rollback();
-            SQLMCon.Close();
-            MTConnection = null;
-            LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
+            else if (this.MTransaccion != null)
+            {
+                this.MTransaccion?.Rollback();
+                SQLMCon.Close();
+                MTConnection = null;
+                LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
+            }
+
         }
         public void BeginGlobalTransaction()
         {
@@ -117,19 +125,26 @@ namespace CAPA_DATOS
         }
         public void CommitGlobalTransaction()
         {
-            this.globalTransaction = false;
-            this.MTransaccion?.Commit();
-            SQLMCon.Close();
-            MTConnection = null;
-            LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
+            if (this.MTransaccion != null)
+            {
+                this.globalTransaction = false;
+                this.MTransaccion?.Commit();
+                SQLMCon.Close();
+                MTConnection = null;
+                LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
+            }
+
         }
         public void RollBackGlobalTransaction()
         {
-            this.globalTransaction = false;
-            LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
-            this.MTransaccion?.Rollback();
-            SQLMCon.Close();
-            MTConnection = null;
+            if (this.MTransaccion != null)
+            {
+                this.globalTransaction = false;
+                LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
+                this.MTransaccion?.Rollback();
+                SQLMCon.Close();
+                MTConnection = null;
+            }
         }
         public object ExcuteSqlQuery(string? strQuery)
         {
@@ -149,9 +164,9 @@ namespace CAPA_DATOS
                 CrearDataAdapterSql(comando).Fill(ObjDS);
                 return ObjDS.Tables[0].Copy();
             }
-            catch (System.Exception)
+            catch (System.Exception e)
             {
-                Console.Write(queryString);
+                LoggerServices.AddMessageError($"BEGIN TRANSACTION ERROR {queryString}", e);
                 throw;
             }
 
@@ -377,19 +392,28 @@ namespace CAPA_DATOS
         public T? TakeObject<T>(Object Inst, string CondSQL = "")
         {
             (string queryString, string queryCount) = BuildSelectQuery(Inst, CondSQL, true, true);
-            if (!queryString.ToUpper().Contains(" WHERE "))
+            try
             {
-                throw new Exception($"No es posible buscar el objeto la entidad {Inst.GetType().Name} requiere filtros o parametros con valores para hacer la compariva");
+                if (!queryString.ToUpper().Contains(" WHERE "))
+                {
+                    throw new Exception($"No es posible buscar el objeto la entidad {Inst.GetType().Name} requiere filtros o parametros con valores para hacer la compariva");
+                }
+                DataTable Table = TraerDatosSQL(queryString);
+                if (Table.Rows.Count != 0)
+                {
+                    var CObject = AdapterUtil.ConvertRow<T>(Inst, Table.Rows[0]);
+                    return CObject;
+                }
+                else
+                {
+                    return default;
+                }
             }
-            DataTable Table = TraerDatosSQL(queryString);
-            if (Table.Rows.Count != 0)
+            catch (System.Exception e)
             {
-                var CObject = AdapterUtil.ConvertRow<T>(Inst, Table.Rows[0]);
-                return CObject;
-            }
-            else
-            {
-                return default;
+                SQLMCon.Close();
+                LoggerServices.AddMessageError($"ERROR: TakeList - {Inst.GetType().Name} - {queryString}", e);
+                throw;
             }
         }
 
@@ -397,7 +421,7 @@ namespace CAPA_DATOS
         {
             (string queryString, string queryCount) = BuildSelectQuery(Inst, CondSQL, fullEntity, isFind);
             try
-            {               
+            {
                 DataTable Table = TraerDatosSQL(queryString);
                 return Table;
             }
@@ -424,9 +448,10 @@ namespace CAPA_DATOS
                 data = ListD;
                 totalRecordsQuery = totalRecords;
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 SQLMCon.Close();
+                LoggerServices.AddMessageError($"ERROR: BuildTablePaginated {queryString}", e);
                 throw;
             }
         }
@@ -445,10 +470,19 @@ namespace CAPA_DATOS
         */
         protected (DataTable, int) BuildTablePaginated(string queryString, string queryCount)
         {
-            LoggerServices.AddMessageInfo(queryString);
-            DataTable Table = TraerDatosSQL(queryString);
-            int totalRecords = TraerDatosSQL(queryCount).Rows.Count;
-            return (Table, totalRecords);
+            try
+            {
+                LoggerServices.AddMessageInfo(queryString);
+                DataTable Table = TraerDatosSQL(queryString);
+                int totalRecords = TraerDatosSQL(queryCount).Rows.Count;
+                return (Table, totalRecords);
+            }
+            catch (Exception e)
+            {
+                SQLMCon.Close();
+                LoggerServices.AddMessageError($"ERROR: BuildTablePaginated {queryString}", e);
+                throw;
+            }
         }
 
         public List<T> TakeListWithProcedure<T>(Object Inst, List<Object> Params)
@@ -582,7 +616,7 @@ namespace CAPA_DATOS
             }
         }
 
-        protected string SetFilterValueCondition(PropertyInfo[] props, FilterData filter)
+        protected string SetFilterValueCondition(PropertyInfo[] props, FilterData filter, int index)
         {
             string CondicionString = "";
             var prop = props.ToList().Find(p => p.Name.Equals(filter?.PropName));
@@ -599,44 +633,58 @@ namespace CAPA_DATOS
                 case "OR":
                     if (filter.Filters != null && filter.Filters.Count != 0)
                     {
-                        CondicionString += $" ({string.Join($" {filter.FilterType} ", filter.Filters.Select(f => SetFilterValueCondition(props, f)))})";
+                        WhereOrAnd(ref CondicionString, ref index);
+                        CondicionString += $" ({string.Join($" {filter.FilterType} ", filter.Filters.Select(f => SetFilterValueCondition(props, f, index)))})";
                     }
                     break;
                 case "BETWEEN":
-                    if (atributeType == "DateTime")
+                    if (filter?.Values?.Count > 0)
                     {
-                        CondicionString = CondicionString + " ( " +
-                            (filter?.Values?[0] != null ? AtributeName + "  >= '" + filter.Values[0] + "'  " : " ") +
-                            (filter?.Values?.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
-                            (filter?.Values?.Count > 1 ? AtributeName + " <= '" + filter.Values[1] + "' ) " : ") ");
-                    }
-                    else if (atributeType == "Int32"
-                                        || atributeType == "Double"
-                                        || atributeType == "Decimal"
-                                        || atributeType == "int")
-                    {
-                        CondicionString = CondicionString + " ( " +
-                           (filter?.Values?[0] != null ? AtributeName + "  >= " + filter.Values[0] + "  " : " ") +
-                           (filter?.Values?.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
-                           (filter?.Values?.Count > 1 ? AtributeName + " <= " + filter.Values[1] + " ) " : ") ");
+                        WhereOrAnd(ref CondicionString, ref index);
+                        if (atributeType == "DateTime")
+                        {
+                            CondicionString = CondicionString + " ( " +
+                                (filter?.Values?[0] != null ? AtributeName + "  >= '" + filter.Values[0] + "'  " : " ") +
+                                (filter?.Values?.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
+                                (filter?.Values?.Count > 1 ? AtributeName + " <= '" + filter.Values[1] + "' ) " : ") ");
+                        }
+                        else if (atributeType == "Int32"
+                                            || atributeType == "Double"
+                                            || atributeType == "Decimal"
+                                            || atributeType == "int")
+                        {
+                            CondicionString = CondicionString + " ( " +
+                               (filter?.Values?[0] != null ? AtributeName + "  >= " + filter.Values[0] + "  " : " ") +
+                               (filter?.Values?.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
+                               (filter?.Values?.Count > 1 ? AtributeName + " <= " + filter.Values[1] + " ) " : ") ");
+                        }
                     }
                     break;
                 case "IN":
                 case "NOT IN":
                     if (filter?.Values?.Count > 0)
                     {
+                        WhereOrAnd(ref CondicionString, ref index);
                         CondicionString = CondicionString + AtributeName + $" {filter?.FilterType} (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
                     }
                     break;
                 case "LIKE":
-                    CondicionString = CondicionString + AtributeName + " LIKE '%" + filter?.Values?[0] + "%' ";
+                    if (filter?.Values?.Count > 0)
+                    {
+                        WhereOrAnd(ref CondicionString, ref index);
+                        CondicionString = CondicionString + AtributeName + " LIKE '%" + filter?.Values?[0] + "%' ";
+                    }
                     break;
                 default:
-                    //if ((atributeType == "string" || atributeType == "String" || atributeType == "DateTime") && Value?.Length < 200)
-                    if (atributeType == "int" || atributeType == "Double" || atributeType == "Decimal" || atributeType == "int")
-                        CondicionString += $" {AtributeName} {filter?.FilterType} {filter?.Values?[0]} ";
-                    else
-                        CondicionString += $" {AtributeName} {filter.FilterType} '{filter?.Values?[0]}' ";
+                    if (filter?.Values?.Count > 0)
+                    {
+                        WhereOrAnd(ref CondicionString, ref index);
+                        //if ((atributeType == "string" || atributeType == "String" || atributeType == "DateTime") && Value?.Length < 200)
+                        if (atributeType == "int" || atributeType == "Double" || atributeType == "Decimal" || atributeType == "int")
+                            CondicionString += $" {AtributeName} {filter?.FilterType} {filter?.Values?[0]} ";
+                        else
+                            CondicionString += $" {AtributeName} {filter.FilterType} '{filter?.Values?[0]}' ";
+                    }
                     break;
             }
 

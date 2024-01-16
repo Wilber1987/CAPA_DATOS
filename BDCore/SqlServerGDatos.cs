@@ -2,6 +2,7 @@
 using System.Data.SqlClient;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using CAPA_DATOS;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -206,12 +207,16 @@ namespace CAPA_DATOS
 
             }
             if (filterData != null && filterData.GetValue(Inst) != null)
-            {                
+            {
+                int indexF = 0;
                 foreach (FilterData filter in (List<FilterData>?)filterData.GetValue(Inst) ?? new List<FilterData>())
-                {
-                    WhereOrAnd(ref CondicionString, ref index);
-                    CondicionString += SetFilterValueCondition(lst, filter);
-                }                
+                {                    
+                    CondicionString += SetFilterValueCondition(lst, filter, indexF);
+                    string pattern = @"\b(?:AND|OR| AND | OR )\b$";
+                    // Reemplazar la coincidencia con una cadena vacía.
+                    CondicionString = Regex.Replace(CondicionString, pattern, string.Empty);
+                    indexF ++;
+                }
             }
 
             CondicionString = CondicionString.TrimEnd(new char[] { '0', 'R' });
@@ -229,10 +234,10 @@ namespace CAPA_DATOS
             string queryString = $"SELECT {Columns} FROM {entityProps[0].TABLE_SCHEMA}.{Inst.GetType().Name} as {tableAlias} {CondicionString} {CondSQL} ";
 
             PropertyInfo? primaryKeyPropierty = Inst?.GetType()?.GetProperties()?.ToList()?.Where(p => Attribute.GetCustomAttribute(p, typeof(PrimaryKey)) != null).FirstOrDefault();
-            // if (orderBy != null)
-            // {
-            //     queryString = queryString + $" ORDER BY {orderBy} {(orderDir == null ? "ASC" : "DESC")} ";
-            // }
+            if (orderBy != null)
+            {
+                queryString = queryString + $" ORDER BY {orderBy} {(orderDir == null ? "ASC" : "DESC")} ";
+            }
             if (orderBy == null && primaryKeyPropierty != null)
             {
                 queryString = queryString + " ORDER BY " + primaryKeyPropierty.Name + " DESC";
@@ -240,7 +245,7 @@ namespace CAPA_DATOS
             string queryStringCount = $" SELECT count(*) FROM {entityProps[0].TABLE_SCHEMA}.{Inst?.GetType().Name} as {tableAlias} {CondicionString} {CondSQL};";
 
             return (queryString, queryStringCount);
-        }       
+        }
 
         protected override string BuildSetsForUpdate(string Values, string AtributeName,
         object AtributeValue, EntityProps EntityProp, PropertyInfo oProperty)

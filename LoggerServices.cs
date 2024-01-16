@@ -28,7 +28,7 @@ namespace CAPA_DATOS
             {
                 Fecha = DateTime.Now,
                 body = RemoveSpecialCharactersForSql($"Tipo: {ex.GetType().Name},/n Mensaje: {ex.Message},/n Pila de llamadas:/n {ex.StackTrace}"),
-                message = message,
+                message = RemoveSpecialCharactersForSql(message),
                 LogType = LogType.ERROR.ToString()
             }.Save();
         }
