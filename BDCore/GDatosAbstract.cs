@@ -613,7 +613,10 @@ namespace CAPA_DATOS
                     break;
                 case "IN":
                 case "NOT IN":
-                    CondicionString = CondicionString + AtributeName + $" {filter?.FilterType} (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
+                    if (filter?.Values?.Count > 0)
+                    {
+                         CondicionString = CondicionString + AtributeName + $" {filter?.FilterType} (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
+                    }                   
                     break;
                 case "LIKE":
                     CondicionString = CondicionString + AtributeName + " LIKE '%" + filter?.Values?[0] + "%' ";
