@@ -229,10 +229,10 @@ namespace CAPA_DATOS
             string queryString = $"SELECT {Columns} FROM {entityProps[0].TABLE_SCHEMA}.{Inst.GetType().Name} as {tableAlias} {CondicionString} {CondSQL} ";
 
             PropertyInfo? primaryKeyPropierty = Inst?.GetType()?.GetProperties()?.ToList()?.Where(p => Attribute.GetCustomAttribute(p, typeof(PrimaryKey)) != null).FirstOrDefault();
-            if (orderBy != null)
-            {
-                queryString = queryString + $" ORDER BY {orderBy} {(orderDir == null ? "ASC" : "DESC")} ";
-            }
+            // if (orderBy != null)
+            // {
+            //     queryString = queryString + $" ORDER BY {orderBy} {(orderDir == null ? "ASC" : "DESC")} ";
+            // }
             if (orderBy == null && primaryKeyPropierty != null)
             {
                 queryString = queryString + " ORDER BY " + primaryKeyPropierty.Name + " DESC";

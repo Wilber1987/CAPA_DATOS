@@ -396,8 +396,17 @@ namespace CAPA_DATOS
         protected private DataTable BuildTable(object Inst, ref string CondSQL, bool fullEntity = true, bool isFind = true)
         {
             (string queryString, string queryCount) = BuildSelectQuery(Inst, CondSQL, fullEntity, isFind);
-            DataTable Table = TraerDatosSQL(queryString);
-            return Table;
+            try
+            {               
+                DataTable Table = TraerDatosSQL(queryString);
+                return Table;
+            }
+            catch (Exception e)
+            {
+                SQLMCon.Close();
+                LoggerServices.AddMessageError($"ERROR: BuildTable - {Inst.GetType().Name} - {queryString}", e);
+                throw;
+            }
         }
         /*
         * Interfaz de tipo que permitirá retornar una lista del tipo específico de la entidad 
@@ -586,7 +595,8 @@ namespace CAPA_DATOS
             }
             switch (filter.FilterType?.ToUpper())
             {
-                case "AND" :case "OR":
+                case "AND":
+                case "OR":
                     if (filter.Filters != null && filter.Filters.Count != 0)
                     {
                         CondicionString += $" ({string.Join($" {filter.FilterType} ", filter.Filters.Select(f => SetFilterValueCondition(props, f)))})";
@@ -615,13 +625,13 @@ namespace CAPA_DATOS
                 case "NOT IN":
                     if (filter?.Values?.Count > 0)
                     {
-                         CondicionString = CondicionString + AtributeName + $" {filter?.FilterType} (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
-                    }                   
+                        CondicionString = CondicionString + AtributeName + $" {filter?.FilterType} (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
+                    }
                     break;
                 case "LIKE":
                     CondicionString = CondicionString + AtributeName + " LIKE '%" + filter?.Values?[0] + "%' ";
                     break;
-                default:                    
+                default:
                     //if ((atributeType == "string" || atributeType == "String" || atributeType == "DateTime") && Value?.Length < 200)
                     if (atributeType == "int" || atributeType == "Double" || atributeType == "Decimal" || atributeType == "int")
                         CondicionString += $" {AtributeName} {filter?.FilterType} {filter?.Values?[0]} ";
