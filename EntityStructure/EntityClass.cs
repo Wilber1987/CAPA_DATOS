@@ -18,7 +18,10 @@ public abstract class EntityClass : TransactionalClass
     }
     public List<T> Where<T>(params FilterData[] where_condition)
     {
-        filterData = where_condition.ToList();
+        if (filterData == null)
+            filterData = new List<FilterData>();
+            
+        filterData.AddRange(where_condition.ToList());
         var Data = MTConnection?.TakeList<T>(this, true);
         return Data ?? new List<T>();
     }

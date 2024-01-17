@@ -15,7 +15,6 @@ namespace CAPA_DATOS
         {
             this.ConexionString = ConexionString;
         }
-
         protected override IDbConnection SQLMCon
         {
             get
@@ -208,14 +207,17 @@ namespace CAPA_DATOS
             }
             if (filterData != null && filterData.GetValue(Inst) != null)
             {
-                int indexF = 0;
                 foreach (FilterData filter in (List<FilterData>?)filterData.GetValue(Inst) ?? new List<FilterData>())
-                {                    
-                    CondicionString += SetFilterValueCondition(lst, filter, indexF);
-                    string pattern = @"\b(?:AND|OR| AND | OR )\b$";
+                {
+                    string filterCond = SetFilterValueCondition(lst, filter);
+                    if (filterCond.Length != 0)
+                    {
+                        WhereOrAnd(ref CondicionString);
+                        CondicionString += filterCond;
+                    }
+                    //string pattern = @"\b(?:AND|OR| AND | OR )\b$";
                     // Reemplazar la coincidencia con una cadena vacía.
-                    CondicionString = Regex.Replace(CondicionString, pattern, string.Empty);
-                    indexF ++;
+                    //CondicionString = Regex.Replace(CondicionString, pattern, string.Empty);
                 }
             }
 
@@ -246,7 +248,6 @@ namespace CAPA_DATOS
 
             return (queryString, queryStringCount);
         }
-
         protected override string BuildSetsForUpdate(string Values, string AtributeName,
         object AtributeValue, EntityProps EntityProp, PropertyInfo oProperty)
         {
@@ -296,7 +297,6 @@ namespace CAPA_DATOS
             var es = AdapterUtil.ConvertDataTable<EntitySchema>(Table, new EntitySchema());
             return es;
         }
-
         public override List<EntitySchema> databaseTypes()
         {
             string DescribeQuery = @"SELECT TABLE_TYPE FROM [INFORMATION_SCHEMA].[TABLES]  group by TABLE_TYPE";
@@ -320,7 +320,6 @@ namespace CAPA_DATOS
             var es = AdapterUtil.ConvertDataTable<EntityColumn>(Table, new EntityColumn());
             return es.Find(e => e.COLUMN_NAME == column && e.TYPE_NAME.Contains("identity"));
         }
-
         public override List<EntityProps> describeEntity(string entityName)
         {
             string DescribeQuery = @"SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE
@@ -330,7 +329,6 @@ namespace CAPA_DATOS
             DataTable Table = TraerDatosSQL(DescribeQuery);
             return AdapterUtil.ConvertDataTable<EntityProps>(Table, new EntityProps());
         }
-
         public override List<OneToOneSchema> ManyToOneKeys(string entityName)
         {
             string DescribeQuery = @"SELECT   
@@ -349,7 +347,6 @@ namespace CAPA_DATOS
             DataTable Table = TraerDatosSQL(DescribeQuery);
             return AdapterUtil.ConvertDataTable<OneToOneSchema>(Table, new OneToOneSchema());
         }
-
         public override Boolean isPrimary(string entityName, string column)
         {
             return evalKeyType(entityName, column, "PRIMARY KEY") > 0;
@@ -374,7 +371,6 @@ namespace CAPA_DATOS
             DataTable Table = TraerDatosSQL(DescribeQuery);
             return Table.Rows.Count;
         }
-
         public override int keyInformation(string entityName, string keyType)
         {
             string DescribeQuery = @"SELECT
@@ -397,7 +393,6 @@ namespace CAPA_DATOS
             DataTable Table = TraerDatosSQL(DescribeQuery);
             return AdapterUtil.ConvertDataTable<OneToManySchema>(Table, new OneToManySchema());
         }
-
         //PAGINACION
         protected override (string queryResults, string queryCount) BuildSelectQueryPaginated(object Inst, string CondSQL, int pageNum, int pageSize, string orderBy, string orderDir, bool fullEntity = true, bool isFind = false)
         {

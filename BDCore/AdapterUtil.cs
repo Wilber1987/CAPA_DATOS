@@ -98,7 +98,6 @@ public class AdapterUtil
                 }
             }
             else continue;
-
         }
         return obj;
     }

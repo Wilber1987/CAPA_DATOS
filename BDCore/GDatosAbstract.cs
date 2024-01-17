@@ -101,16 +101,44 @@ namespace CAPA_DATOS
         }
         public void RollBackTransaction()
         {
-            if (this.globalTransaction)
+            // if (this.globalTransaction)
+            // {
+            //     return;
+            // }
+            // else if (this.MTransaccion != null)
+            // {
+            //     this.MTransaccion?.Rollback();
+            //     SQLMCon.Close();
+            //     MTConnection = null;
+            //     LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
+            // }
+            try
             {
-                return;
+
+
+                if (this.MTransaccion != null)
+                {
+                    // Verificar el estado de la transacción antes de intentar realizar un rollback.
+                    if (this.MTransaccion.Connection != null &&
+                        this.MTransaccion.Connection.State == System.Data.ConnectionState.Open)
+                    {
+                        this.MTransaccion.Rollback();
+                    }
+
+                    // Cerrar la conexión solo si no está cerrada ya.
+                    if (SQLMCon.State != System.Data.ConnectionState.Closed)
+                    {
+                        SQLMCon.Close();
+                    }
+
+                    MTConnection = null;
+                    LoggerServices.AddMessageInfo("-- > ROLLBACK TRANSACTION <=================");
+                }
             }
-            else if (this.MTransaccion != null)
+            catch (Exception ex)
             {
-                this.MTransaccion?.Rollback();
-                SQLMCon.Close();
-                MTConnection = null;
-                LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
+                // Manejar la excepción según tus requisitos.
+                LoggerServices.AddMessageError($"Error al realizar rollback de la transacción: {ex.Message}", ex);
             }
 
         }
@@ -133,17 +161,50 @@ namespace CAPA_DATOS
                 MTConnection = null;
                 LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
             }
-
         }
+        // public void RollBackGlobalTransaction()
+        // {
+        //     if (this.MTransaccion != null)
+        //     {
+        //         this.globalTransaction = false;
+        //         LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
+        //         this.MTransaccion?.Rollback();
+        //         SQLMCon.Close();
+        //         MTConnection = null;
+        //     }
+        // }
         public void RollBackGlobalTransaction()
         {
-            if (this.MTransaccion != null)
+            try
             {
-                this.globalTransaction = false;
-                LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
-                this.MTransaccion?.Rollback();
-                SQLMCon.Close();
-                MTConnection = null;
+                if (this.globalTransaction)
+                {
+                    return;
+                }
+
+                if (this.MTransaccion != null)
+                {
+                    // Verificar el estado de la transacción antes de intentar realizar un rollback.
+                    if (this.MTransaccion.Connection != null &&
+                        this.MTransaccion.Connection.State == System.Data.ConnectionState.Open)
+                    {
+                        this.MTransaccion.Rollback();
+                    }
+
+                    // Cerrar la conexión solo si no está cerrada ya.
+                    if (SQLMCon.State != System.Data.ConnectionState.Closed)
+                    {
+                        SQLMCon.Close();
+                    }
+
+                    MTConnection = null;
+                    LoggerServices.AddMessageInfo("-- > ROLLBACK TRANSACTION <=================");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Manejar la excepción según tus requisitos.
+                LoggerServices.AddMessageError($"Error al realizar rollback de la transacción: {ex.Message}", ex);
             }
         }
         public object ExcuteSqlQuery(string? strQuery)
@@ -388,7 +449,6 @@ namespace CAPA_DATOS
                 throw;
             }
         }
-
         public T? TakeObject<T>(Object Inst, string CondSQL = "")
         {
             (string queryString, string queryCount) = BuildSelectQuery(Inst, CondSQL, true, true);
@@ -416,7 +476,6 @@ namespace CAPA_DATOS
                 throw;
             }
         }
-
         protected private DataTable BuildTable(object Inst, ref string CondSQL, bool fullEntity = true, bool isFind = true)
         {
             (string queryString, string queryCount) = BuildSelectQuery(Inst, CondSQL, fullEntity, isFind);
@@ -589,42 +648,43 @@ namespace CAPA_DATOS
             {
                 if (AtributeValue?.GetType() == typeof(string) && AtributeValue?.ToString()?.Length < 200)
                 {
-                    WhereOrAnd(ref CondicionString, ref index);
+                    WhereOrAnd(ref CondicionString);
                     CondicionString = CondicionString + AtributeName + " LIKE '%" + AtributeValue.ToString() + "%' ";
                 }
                 else if (AtributeValue?.GetType() == typeof(DateTime))
                 {
-                    WhereOrAnd(ref CondicionString, ref index);
+                    WhereOrAnd(ref CondicionString);
                     CondicionString = CondicionString + AtributeName
                         + "= '" + ((DateTime)AtributeValue).ToString("yyyy/MM/dd") + "' ";
                 }
                 else if (AtributeValue?.GetType() == typeof(int) || AtributeValue?.GetType() == typeof(int?))
                 {
-                    WhereOrAnd(ref CondicionString, ref index);
+                    WhereOrAnd(ref CondicionString);
                     CondicionString = CondicionString + AtributeName + "=" + AtributeValue?.ToString() + " ";
                 }
                 else if (AtributeValue?.GetType() == typeof(Double))
                 {
-                    WhereOrAnd(ref CondicionString, ref index);
+                    WhereOrAnd(ref CondicionString);
                     CondicionString = CondicionString + AtributeName + "= cast('" + AtributeValue?.ToString()?.Replace(",", ".") + "' as float)  ";
                 }
                 else if (AtributeValue?.GetType() == typeof(Decimal))
                 {
-                    WhereOrAnd(ref CondicionString, ref index);
+                    WhereOrAnd(ref CondicionString);
                     CondicionString = CondicionString + AtributeName + "= cast('" + AtributeValue?.ToString()?.Replace(",", ".") + "' as decimal)  ";
                 }
             }
         }
 
-        protected string SetFilterValueCondition(PropertyInfo[] props, FilterData filter, int index)
+        protected string SetFilterValueCondition(PropertyInfo[] props, FilterData filter)
         {
             string CondicionString = "";
-            var prop = props.ToList().Find(p => p.Name.Equals(filter?.PropName));
+            PropertyInfo? prop = props.ToList().Find(p => p.Name.Equals(filter?.PropName));
             string atributeType = "";
             string AtributeName = "";
             if (prop != null)
             {
-                atributeType = prop.GetType().Name;
+                var propertyType = Nullable.GetUnderlyingType(prop?.PropertyType) ?? prop?.PropertyType;
+                atributeType = propertyType?.Name;
                 AtributeName = prop.Name;
             }
             switch (filter.FilterType?.ToUpper())
@@ -633,20 +693,19 @@ namespace CAPA_DATOS
                 case "OR":
                     if (filter.Filters != null && filter.Filters.Count != 0)
                     {
-                        WhereOrAnd(ref CondicionString, ref index);
-                        CondicionString += $" ({string.Join($" {filter.FilterType} ", filter.Filters.Select(f => SetFilterValueCondition(props, f, index)))})";
+                        CondicionString += $" ({string.Join($" {filter.FilterType} ", filter.Filters.Select(f => SetFilterValueCondition(props, f)))})";
                     }
                     break;
                 case "BETWEEN":
                     if (filter?.Values?.Count > 0)
                     {
-                        WhereOrAnd(ref CondicionString, ref index);
+                        // WhereOrAnd(ref CondicionString);
                         if (atributeType == "DateTime")
                         {
-                            CondicionString = CondicionString + " ( " +
-                                (filter?.Values?[0] != null ? AtributeName + "  >= '" + filter.Values[0] + "'  " : " ") +
+                             CondicionString = CondicionString + " ( " +
+                                (filter?.Values?[0] != null ? AtributeName + "  >= " + "CONVERT(DATETIME,'" + Convert.ToDateTime(filter.Values[0]).ToString("yyyyMMdd HH:mm:ss") + "')" + "  " : " ") +
                                 (filter?.Values?.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
-                                (filter?.Values?.Count > 1 ? AtributeName + " <= '" + filter.Values[1] + "' ) " : ") ");
+                                (filter?.Values?.Count > 1 ? AtributeName + " <= " + "CONVERT(DATETIME,'" + Convert.ToDateTime(filter.Values[1]).ToString("yyyyMMdd HH:mm:ss") + "')" + " ) " : ") ");
                         }
                         else if (atributeType == "Int32"
                                             || atributeType == "Double"
@@ -664,21 +723,21 @@ namespace CAPA_DATOS
                 case "NOT IN":
                     if (filter?.Values?.Count > 0)
                     {
-                        WhereOrAnd(ref CondicionString, ref index);
+                        // WhereOrAnd(ref CondicionString);
                         CondicionString = CondicionString + AtributeName + $" {filter?.FilterType} (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
                     }
                     break;
                 case "LIKE":
                     if (filter?.Values?.Count > 0)
                     {
-                        WhereOrAnd(ref CondicionString, ref index);
+                        // WhereOrAnd(ref CondicionString);
                         CondicionString = CondicionString + AtributeName + " LIKE '%" + filter?.Values?[0] + "%' ";
                     }
                     break;
                 default:
                     if (filter?.Values?.Count > 0)
                     {
-                        WhereOrAnd(ref CondicionString, ref index);
+                        // WhereOrAnd(ref CondicionString);
                         //if ((atributeType == "string" || atributeType == "String" || atributeType == "DateTime") && Value?.Length < 200)
                         if (atributeType == "int" || atributeType == "Double" || atributeType == "Decimal" || atributeType == "int")
                             CondicionString += $" {AtributeName} {filter?.FilterType} {filter?.Values?[0]} ";
@@ -692,7 +751,7 @@ namespace CAPA_DATOS
         }
 
 
-        protected void WhereOrAnd(ref string CondicionString, ref int index)
+        protected void WhereOrAnd(ref string CondicionString)
         {
             if (!CondicionString.Contains("WHERE"))
                 CondicionString = " WHERE ";
