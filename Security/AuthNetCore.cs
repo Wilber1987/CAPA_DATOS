@@ -12,16 +12,12 @@ namespace API.Controllers
             var security_User = SeasonServices.Get<Security_Users>("loginIn", idetify);
             if (SqlADOConexion.SQLM == null || SqlADOConexion.Anonimo || security_User == null)
             {
-                //security_User = null;
-                //SqlADOConexion.SQLM = null;
                 return false;
             }
             return true;
-
         }
         static public bool AnonymousAuthenticate()
-        {
-            SqlADOConexion.IniciarConexionAnonima();
+        {           
             return true;
         }
         static public object loginIN(string? mail, string? password, string idetify)
@@ -35,7 +31,6 @@ namespace API.Controllers
                 };
             try
             {
-                SqlADOConexion.IniciarConexion();
                 var security_User = new Security_Users()
                 {
                     Mail = mail,
@@ -173,7 +168,6 @@ namespace API.Controllers
             }
             try
             {
-                SqlADOConexion.IniciarConexion();
                 var security_User = new Security_Users()
                 {
                     Mail = mail

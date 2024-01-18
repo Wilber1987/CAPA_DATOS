@@ -102,7 +102,7 @@ namespace CAPA_DATOS
             }
         }
         public void RollBackTransaction()
-        {            
+        {
             try
             {
 
@@ -144,7 +144,7 @@ namespace CAPA_DATOS
         }
         public void CommitGlobalTransaction()
         {
-            if (this.MTransaccion != null && this.MTransaccion.Connection != null )
+            if (this.MTransaccion != null && this.MTransaccion.Connection != null)
             {
                 this.globalTransaction = false;
                 this.MTransaccion?.Commit();
@@ -170,20 +170,17 @@ namespace CAPA_DATOS
                     {
                         this.MTransaccion.Rollback();
                     }
-
                     // Cerrar la conexión solo si no está cerrada ya.
                     if (SQLMCon.State != System.Data.ConnectionState.Closed)
                     {
                         SQLMCon.Close();
                     }
-
                     MTConnection = null;
                     LoggerServices.AddMessageInfo("-- > ROLLBACK TRANSACTION <=================");
                 }
             }
             catch (Exception ex)
             {
-                // Manejar la excepción según tus requisitos.
                 LoggerServices.AddMessageError($"Error al realizar rollback de la transacción: {ex.Message}", ex);
             }
         }
@@ -414,7 +411,6 @@ namespace CAPA_DATOS
             }
             catch (Exception e)
             {
-                //SQLMCon.Close();
                 LoggerServices.AddMessageError($"ERROR: TakeList - {Inst.GetType().Name} - {fullEntity} - {CondSQL}", e);
                 throw;
             }
@@ -429,7 +425,6 @@ namespace CAPA_DATOS
             }
             catch (Exception e)
             {
-                //SQLMCon.Close();
                 LoggerServices.AddMessageError($"ERROR: TakeList - {Inst.GetType().Name} - {queryString}", e);
                 throw;
             }
@@ -456,7 +451,6 @@ namespace CAPA_DATOS
             }
             catch (System.Exception e)
             {
-                //SQLMCon.Close();
                 LoggerServices.AddMessageError($"ERROR: TakeList - {Inst.GetType().Name} - {queryString}", e);
                 throw;
             }
@@ -471,7 +465,6 @@ namespace CAPA_DATOS
             }
             catch (Exception e)
             {
-                //SQLMCon.Close();
                 LoggerServices.AddMessageError($"ERROR: BuildTable - {Inst.GetType().Name} - {queryString}", e);
                 throw;
             }
@@ -494,7 +487,6 @@ namespace CAPA_DATOS
             }
             catch (Exception e)
             {
-                //SQLMCon.Close();
                 LoggerServices.AddMessageError($"ERROR: BuildTablePaginated {queryString}", e);
                 throw;
             }
@@ -601,7 +593,7 @@ namespace CAPA_DATOS
                         case "datetime":
                         case "date":
                             ColumnNames = ColumnNames + AtributeName.ToString() + ",";
-                            Values = Values + "CONVERT(DATETIME,'" + ((DateTime)AtributeValue).ToString("yyyyMMdd HH:mm:ss") + "'),";
+                            Values = BuildSqlDateConverterQuery(Values, AtributeValue);
                             break;
                     }
                 }
@@ -617,6 +609,12 @@ namespace CAPA_DATOS
             string QUERY = "INSERT INTO " + entityProps[0].TABLE_SCHEMA + "." + Inst.GetType().Name + "(" + ColumnNames + ") VALUES(" + Values + ") SELECT SCOPE_IDENTITY()";
             LoggerServices.AddMessageInfo(QUERY);
             return QUERY;
+        }
+        /*BuildSqlDateConverterQuery debe ser reescrita segun la implementacion
+         del motor de base de datos, este ejemplo es para sql server*/
+        private static string BuildSqlDateConverterQuery(string Values, object AtributeValue)
+        {
+            return Values + "CONVERT(DATETIME,'" + ((DateTime)AtributeValue).ToString("yyyyMMdd HH:mm:ss") + "'),";
         }
         protected string tableAliaGenerator()
         {
@@ -664,13 +662,13 @@ namespace CAPA_DATOS
         {
             string CondicionString = "";
             PropertyInfo? prop = props.ToList().Find(p => p.Name.Equals(filter?.PropName));
-            string atributeType = "";
+            string? atributeType = "";
             string AtributeName = "";
             if (prop != null)
             {
+                AtributeName = prop.Name;
                 var propertyType = Nullable.GetUnderlyingType(prop?.PropertyType) ?? prop?.PropertyType;
                 atributeType = propertyType?.Name;
-                AtributeName = prop.Name;
             }
             switch (filter.FilterType?.ToUpper())
             {
@@ -708,22 +706,18 @@ namespace CAPA_DATOS
                 case "NOT IN":
                     if (filter?.Values?.Count > 0)
                     {
-                        // WhereOrAnd(ref CondicionString);
                         CondicionString = CondicionString + AtributeName + $" {filter?.FilterType} (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
                     }
                     break;
                 case "LIKE":
                     if (filter?.Values?.Count > 0)
                     {
-                        // WhereOrAnd(ref CondicionString);
                         CondicionString = CondicionString + AtributeName + " LIKE '%" + filter?.Values?[0] + "%' ";
                     }
                     break;
                 default:
                     if (filter?.Values?.Count > 0)
                     {
-                        // WhereOrAnd(ref CondicionString);
-                        //if ((atributeType == "string" || atributeType == "String" || atributeType == "DateTime") && Value?.Length < 200)
                         if (atributeType == "int" || atributeType == "Double" || atributeType == "Decimal" || atributeType == "int")
                             CondicionString += $" {AtributeName} {filter?.FilterType} {filter?.Values?[0]} ";
                         else
@@ -748,7 +742,6 @@ namespace CAPA_DATOS
             string CondicionString = "";
             foreach (string? Value in conditions)
             {
-                //if ((atributeType == "string" || atributeType == "String" || atributeType == "DateTime") && Value?.Length < 200)
                 if (atributeType == "int" || atributeType == "Double" || atributeType == "Decimal" || atributeType == "int")
                     CondicionString = CondicionString + Value?.ToString() + ",";
                 else
