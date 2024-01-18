@@ -90,28 +90,19 @@ namespace CAPA_DATOS
             {
                 return;
             }
-            else if (this.MTransaccion != null)
+            else if (this.MTransaccion != null && this.MTransaccion.Connection != null)
             {
                 LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
-                this.MTransaccion?.Commit();
+                if (this.MTransaccion.Connection.State == ConnectionState.Open)
+                {
+                    this.MTransaccion?.Commit();
+                }
                 SQLMCon.Close();
                 MTConnection = null;
             }
-
         }
         public void RollBackTransaction()
-        {
-            // if (this.globalTransaction)
-            // {
-            //     return;
-            // }
-            // else if (this.MTransaccion != null)
-            // {
-            //     this.MTransaccion?.Rollback();
-            //     SQLMCon.Close();
-            //     MTConnection = null;
-            //     LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
-            // }
+        {            
             try
             {
 
@@ -153,7 +144,7 @@ namespace CAPA_DATOS
         }
         public void CommitGlobalTransaction()
         {
-            if (this.MTransaccion != null)
+            if (this.MTransaccion != null && this.MTransaccion.Connection != null )
             {
                 this.globalTransaction = false;
                 this.MTransaccion?.Commit();
@@ -162,17 +153,6 @@ namespace CAPA_DATOS
                 LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
             }
         }
-        // public void RollBackGlobalTransaction()
-        // {
-        //     if (this.MTransaccion != null)
-        //     {
-        //         this.globalTransaction = false;
-        //         LoggerServices.AddMessageInfo("-- > ROOLBACK TRANSACTION <=================");
-        //         this.MTransaccion?.Rollback();
-        //         SQLMCon.Close();
-        //         MTConnection = null;
-        //     }
-        // }
         public void RollBackGlobalTransaction()
         {
             try
@@ -219,25 +199,30 @@ namespace CAPA_DATOS
         {
             try
             {
-                DataSet ObjDS = new DataSet();
-                var comando = ComandoSql(queryString, SQLMCon);
-                comando.Transaction = this.MTransaccion;
-                CrearDataAdapterSql(comando).Fill(ObjDS);
-                return ObjDS.Tables[0].Copy();
+                using (SqlConnection connection = new SqlConnection(ConexionString))
+                {
+                    connection.Open();
+
+                    using (var comando = ComandoSql(queryString, connection))
+                    {
+                        DataSet ObjDS = new DataSet();
+                        CrearDataAdapterSql(comando).Fill(ObjDS);
+                        return ObjDS.Tables.Count > 0 ? ObjDS.Tables[0].Copy() : new DataTable();
+                    }
+                }
             }
             catch (System.Exception e)
             {
-                LoggerServices.AddMessageError($"BEGIN TRANSACTION ERROR {queryString}", e);
+                LoggerServices.AddMessageError($"TraerDatosSQL ERROR {queryString}", e);
                 throw;
             }
-
         }
         public DataTable TraerDatosSQL(IDbCommand Command)
         {
             DataSet ObjDS = new DataSet();
-            Command.Transaction = this.MTransaccion;
             CrearDataAdapterSql(Command).Fill(ObjDS);
             return ObjDS.Tables[0].Copy();
+
         }
         #endregion
 
@@ -429,7 +414,7 @@ namespace CAPA_DATOS
             }
             catch (Exception e)
             {
-                SQLMCon.Close();
+                //SQLMCon.Close();
                 LoggerServices.AddMessageError($"ERROR: TakeList - {Inst.GetType().Name} - {fullEntity} - {CondSQL}", e);
                 throw;
             }
@@ -444,7 +429,7 @@ namespace CAPA_DATOS
             }
             catch (Exception e)
             {
-                SQLMCon.Close();
+                //SQLMCon.Close();
                 LoggerServices.AddMessageError($"ERROR: TakeList - {Inst.GetType().Name} - {queryString}", e);
                 throw;
             }
@@ -471,7 +456,7 @@ namespace CAPA_DATOS
             }
             catch (System.Exception e)
             {
-                SQLMCon.Close();
+                //SQLMCon.Close();
                 LoggerServices.AddMessageError($"ERROR: TakeList - {Inst.GetType().Name} - {queryString}", e);
                 throw;
             }
@@ -486,7 +471,7 @@ namespace CAPA_DATOS
             }
             catch (Exception e)
             {
-                SQLMCon.Close();
+                //SQLMCon.Close();
                 LoggerServices.AddMessageError($"ERROR: BuildTable - {Inst.GetType().Name} - {queryString}", e);
                 throw;
             }
@@ -509,7 +494,7 @@ namespace CAPA_DATOS
             }
             catch (Exception e)
             {
-                SQLMCon.Close();
+                //SQLMCon.Close();
                 LoggerServices.AddMessageError($"ERROR: BuildTablePaginated {queryString}", e);
                 throw;
             }
@@ -702,10 +687,10 @@ namespace CAPA_DATOS
                         // WhereOrAnd(ref CondicionString);
                         if (atributeType == "DateTime")
                         {
-                             CondicionString = CondicionString + " ( " +
-                                (filter?.Values?[0] != null ? AtributeName + "  >= " + "CONVERT(DATETIME,'" + Convert.ToDateTime(filter.Values[0]).ToString("yyyyMMdd HH:mm:ss") + "')" + "  " : " ") +
-                                (filter?.Values?.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
-                                (filter?.Values?.Count > 1 ? AtributeName + " <= " + "CONVERT(DATETIME,'" + Convert.ToDateTime(filter.Values[1]).ToString("yyyyMMdd HH:mm:ss") + "')" + " ) " : ") ");
+                            CondicionString = CondicionString + " ( " +
+                               (filter?.Values?[0] != null ? AtributeName + "  >= " + "CONVERT(DATETIME,'" + Convert.ToDateTime(filter.Values[0]).ToString("yyyyMMdd HH:mm:ss") + "')" + "  " : " ") +
+                               (filter?.Values?.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
+                               (filter?.Values?.Count > 1 ? AtributeName + " <= " + "CONVERT(DATETIME,'" + Convert.ToDateTime(filter.Values[1]).ToString("yyyyMMdd HH:mm:ss") + "')" + " ) " : ") ");
                         }
                         else if (atributeType == "Int32"
                                             || atributeType == "Double"
