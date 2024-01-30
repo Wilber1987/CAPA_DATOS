@@ -63,26 +63,15 @@ namespace CAPA_DATOS
         }
         public void BeginTransaction()
         {
-            try
+            if (this.globalTransaction)
             {
-                if (this.globalTransaction)
-                {
-                    return;
-                }
-                this.MTConnection = null;
-                LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
-                MTConnection = SQLMCon;
-                SQLMCon.Open();
-                this.MTransaccion = SQLMCon.BeginTransaction();
+                return;
             }
-            catch (TransactionException e)
-            {
-                LoggerServices.AddMessageError("BEGIN TRANSACTION ERROR", e);
-            }
-            catch (Exception e)
-            {
-                LoggerServices.AddMessageError("BEGIN TRANSACTION ERROR", e);
-            }
+            this.MTConnection = null;
+            LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
+            MTConnection = SQLMCon;
+            SQLMCon.Open();
+            this.MTransaccion = SQLMCon.BeginTransaction();
         }
         public void CommitTransaction()
         {
@@ -93,7 +82,7 @@ namespace CAPA_DATOS
             else if (this.MTransaccion != null && this.MTransaccion.Connection != null)
             {
                 LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
-                if (this.MTransaccion.Connection.State == ConnectionState.Open)
+                if (this.MTransaccion?.Connection?.State == ConnectionState.Open)
                 {
                     this.MTransaccion?.Commit();
                 }
@@ -103,123 +92,98 @@ namespace CAPA_DATOS
         }
         public void RollBackTransaction()
         {
-            try
+            if (this.globalTransaction)
             {
-
-
-                if (this.MTransaccion != null)
-                {
-                    // Verificar el estado de la transacción antes de intentar realizar un rollback.
-                    if (this.MTransaccion.Connection != null &&
-                        this.MTransaccion.Connection.State == System.Data.ConnectionState.Open)
-                    {
-                        this.MTransaccion.Rollback();
-                    }
-
-                    // Cerrar la conexión solo si no está cerrada ya.
-                    if (SQLMCon.State != System.Data.ConnectionState.Closed)
-                    {
-                        SQLMCon.Close();
-                    }
-
-                    MTConnection = null;
-                    LoggerServices.AddMessageInfo("-- > ROLLBACK TRANSACTION <=================");
-                }
+                return;
             }
-            catch (Exception ex)
+            if (this.MTransaccion?.Connection?.State == System.Data.ConnectionState.Open)
             {
-                // Manejar la excepción según tus requisitos.
-                LoggerServices.AddMessageError($"Error al realizar rollback de la transacción: {ex.Message}", ex);
+                this.MTransaccion.Rollback();
+                SQLMCon?.Close();
             }
+            MTConnection = null;
+            LoggerServices.AddMessageInfo("-- > ROLLBACK TRANSACTION <=================");
 
         }
         public void BeginGlobalTransaction()
         {
             this.globalTransaction = true;
             this.MTConnection = null;
-            MTConnection = SQLMCon;
-            SQLMCon.Open();
-            this.MTransaccion = SQLMCon.BeginTransaction();
+            this.MTConnection = SQLMCon;
+            this.SQLMCon.Open();
+            this.MTransaccion = this.MTConnection.BeginTransaction();
             LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
         }
         public void CommitGlobalTransaction()
         {
-            if (this.MTransaccion != null && this.MTransaccion.Connection != null)
+            if (this.MTransaccion?.Connection?.State == System.Data.ConnectionState.Open)
             {
                 this.globalTransaction = false;
                 this.MTransaccion?.Commit();
-                SQLMCon.Close();
+                this.SQLMCon?.Close();
                 MTConnection = null;
                 LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
             }
         }
         public void RollBackGlobalTransaction()
         {
-            try
+            if (this.MTransaccion != null)
             {
-                if (this.globalTransaction)
+                if (this.MTransaccion?.Connection?.State == System.Data.ConnectionState.Open)
                 {
-                    return;
+                    this.MTransaccion.Rollback();
+                    this.SQLMCon.Close();
                 }
-
-                if (this.MTransaccion != null)
-                {
-                    // Verificar el estado de la transacción antes de intentar realizar un rollback.
-                    if (this.MTransaccion.Connection != null &&
-                        this.MTransaccion.Connection.State == System.Data.ConnectionState.Open)
-                    {
-                        this.MTransaccion.Rollback();
-                    }
-                    // Cerrar la conexión solo si no está cerrada ya.
-                    if (SQLMCon.State != System.Data.ConnectionState.Closed)
-                    {
-                        SQLMCon.Close();
-                    }
-                    MTConnection = null;
-                    LoggerServices.AddMessageInfo("-- > ROLLBACK TRANSACTION <=================");
-                }
+                LoggerServices.AddMessageInfo("-- > ROLLBACK TRANSACTION <=================");
             }
-            catch (Exception ex)
-            {
-                LoggerServices.AddMessageError($"Error al realizar rollback de la transacción: {ex.Message}", ex);
-            }
+            this.MTConnection = null;
         }
         public object ExcuteSqlQuery(string? strQuery)
         {
-            var com = ComandoSql(strQuery, SQLMCon);
-            com.Transaction = this.MTransaccion;
-            var scalar = com.ExecuteScalar();
-            if (scalar == (object)DBNull.Value) return true;
-            else return Convert.ToInt32(scalar);
-        }
-        public DataTable TraerDatosSQL(string queryString)
-        {
             try
             {
-                using (SqlConnection connection = new SqlConnection(ConexionString))
-                {
-                    connection.Open();
-
-                    using (var comando = ComandoSql(queryString, connection))
-                    {
-                        DataSet ObjDS = new DataSet();
-                        CrearDataAdapterSql(comando).Fill(ObjDS);
-                        return ObjDS.Tables.Count > 0 ? ObjDS.Tables[0].Copy() : new DataTable();
-                    }
-                }
+                var com = ComandoSql(strQuery, SQLMCon);
+                com.Transaction = this.MTransaccion;
+                var scalar = com.ExecuteScalar();
+                if (scalar == (object)DBNull.Value) return true;
+                else return Convert.ToInt32(scalar);
             }
-            catch (System.Exception e)
+            catch (System.Exception ex)
             {
-                LoggerServices.AddMessageError($"TraerDatosSQL ERROR {queryString}", e);
+                this.ReStartData(ex);
                 throw;
             }
+        }
+
+        private void ReStartData(Exception ex)
+        {
+            if (this.MTransaccion?.Connection?.State == System.Data.ConnectionState.Open)
+            {
+                this.MTransaccion.Rollback();
+            }
+            if (this.SQLMCon?.State == System.Data.ConnectionState.Open)
+            {
+                this.SQLMCon.Close();
+            } 
+            globalTransaction = false;
+            this.MTConnection = null;
+            this.MTransaccion = null;                              
+        }
+
+        public DataTable TraerDatosSQL(string queryString)
+        {
+            DataSet ObjDS = new DataSet();
+            var Command = ComandoSql(queryString, SQLMCon);
+            Command.Transaction = this.MTransaccion;
+            CrearDataAdapterSql(Command).Fill(ObjDS);
+            return ObjDS.Tables.Count > 0 ? ObjDS.Tables[0].Copy() : new DataTable();
         }
         public DataTable TraerDatosSQL(IDbCommand Command)
         {
             DataSet ObjDS = new DataSet();
+            Command.Transaction = this.MTransaccion;
             CrearDataAdapterSql(Command).Fill(ObjDS);
             return ObjDS.Tables[0].Copy();
-
         }
         #endregion
 
@@ -403,31 +367,15 @@ namespace CAPA_DATOS
         #region LECTURA DE OBJETOS
         public List<T> TakeList<T>(Object Inst, bool fullEntity, string CondSQL = "")
         {
-            try
-            {
-                DataTable Table = BuildTable(Inst, ref CondSQL, fullEntity, false);
-                List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
-                return ListD;
-            }
-            catch (Exception e)
-            {
-                LoggerServices.AddMessageError($"ERROR: TakeList - {Inst.GetType().Name} - {fullEntity} - {CondSQL}", e);
-                throw;
-            }
+            DataTable Table = BuildTable(Inst, ref CondSQL, fullEntity, false);
+            List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
+            return ListD;
         }
         public List<T> TakeList<T>(Object Inst, string queryString)
         {
-            try
-            {
-                DataTable Table = TraerDatosSQL(queryString);
-                List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
-                return ListD;
-            }
-            catch (Exception e)
-            {
-                LoggerServices.AddMessageError($"ERROR: TakeList - {Inst.GetType().Name} - {queryString}", e);
-                throw;
-            }
+            DataTable Table = TraerDatosSQL(queryString);
+            List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
+            return ListD;
         }
         public T? TakeObject<T>(Object Inst, string CondSQL = "")
         {
@@ -451,6 +399,7 @@ namespace CAPA_DATOS
             }
             catch (System.Exception e)
             {
+                this.ReStartData(e);
                 LoggerServices.AddMessageError($"ERROR: TakeList - {Inst.GetType().Name} - {queryString}", e);
                 throw;
             }
@@ -465,6 +414,7 @@ namespace CAPA_DATOS
             }
             catch (Exception e)
             {
+                this.ReStartData(e);
                 LoggerServices.AddMessageError($"ERROR: BuildTable - {Inst.GetType().Name} - {queryString}", e);
                 throw;
             }
@@ -487,6 +437,7 @@ namespace CAPA_DATOS
             }
             catch (Exception e)
             {
+                this.ReStartData(e);
                 LoggerServices.AddMessageError($"ERROR: BuildTablePaginated {queryString}", e);
                 throw;
             }
@@ -515,7 +466,7 @@ namespace CAPA_DATOS
             }
             catch (Exception e)
             {
-                SQLMCon.Close();
+                this.ReStartData(e);
                 LoggerServices.AddMessageError($"ERROR: BuildTablePaginated {queryString}", e);
                 throw;
             }
@@ -531,6 +482,7 @@ namespace CAPA_DATOS
             }
             catch (Exception e)
             {
+                this.ReStartData(e);
                 LoggerServices.AddMessageError("ERROR: TakeListWithProcedure", e);
                 throw;
             }

@@ -23,14 +23,14 @@ namespace CAPA_DATOS
         }
         public static void AddMessageError(string message, Exception ex)
         {
-            Console.WriteLine("-- >");
-            new Log
-            {
-                Fecha = DateTime.Now,
-                body = RemoveSpecialCharactersForSql($"Tipo: {ex.GetType().Name},/n Mensaje: {ex.Message},/n Pila de llamadas:/n {ex.StackTrace}"),
-                message = RemoveSpecialCharactersForSql(message),
-                LogType = LogType.ERROR.ToString()
-            }.Save();
+            Console.WriteLine(ex);
+            // new Log
+            // {
+            //     Fecha = DateTime.Now,
+            //     body = RemoveSpecialCharactersForSql($"Tipo: {ex.GetType().Name},/n Mensaje: {ex.Message},/n Pila de llamadas:/n {ex.StackTrace}"),
+            //     message = RemoveSpecialCharactersForSql(message),
+            //     LogType = LogType.ERROR.ToString()
+            // }.Save();
         }
         static string RemoveSpecialCharactersForSql(string input)
         {
