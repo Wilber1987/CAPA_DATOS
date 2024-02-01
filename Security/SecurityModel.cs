@@ -68,6 +68,8 @@ namespace CAPA_DATOS.Security
         public DateTime? Token_Expiration_Date { get; set; }
         [OneToMany(TableName = "Security_Users_Roles", KeyColumn = "Id_User", ForeignKeyColumn = "Id_User")]
         public List<Security_Users_Roles>? Security_Users_Roles { get; set; }
+
+        public Tbl_Profile? Tbl_Profile { get; set; }
         public Security_Users? GetUserData()
         {
             Security_Users? user = this.Find<Security_Users>();
@@ -96,7 +98,7 @@ namespace CAPA_DATOS.Security
                 throw new Exception("no tiene permisos");
             }
             try
-            {                
+            {
                 this.BeginGlobalTransaction();
                 if (this.Password != null)
                 {
@@ -109,14 +111,22 @@ namespace CAPA_DATOS.Security
                         throw new Exception("Correo en uso");
                     }
                     Save();
-                    new Tbl_Profile()
+                    if (Tbl_Profile != null)
                     {
-                        Nombres = this.Nombres,
-                        Estado = this.Estado,
-                        Correo_institucional = this.Mail,
-                        Foto = "\\Media\\profiles\\avatar.png",
-                        IdUser = Id_User
-                    }.Save();
+                        Tbl_Profile.Save();
+                    }
+                    else
+                    {
+                        new Tbl_Profile()
+                        {
+                            Nombres = this.Nombres,
+                            Estado = this.Estado,
+                            Correo_institucional = this.Mail,
+                            Foto = "\\Media\\profiles\\avatar.png",
+                            IdUser = Id_User
+                        }.Save();
+                    }
+
                 }
                 else
                 {
@@ -164,7 +174,6 @@ namespace CAPA_DATOS.Security
              p.Security_Permissions.Descripcion.Equals(PermissionsEnum.ADMIN_ACCESS.ToString())
             ) != null) != null;
         }
-
         internal object RecoveryPassword()
         {
             Security_Users? user = this.Find<Security_Users>();
@@ -187,28 +196,27 @@ namespace CAPA_DATOS.Security
         }
 
         public object? changePassword(string? identfy)
-        {            
+        {
             var security_User = AuthNetCore.User(identfy).UserData;
             Password = EncrypterServices.Encrypt(Password);
             Id_User = security_User?.Id_User;
             return Update();
         }
-
-        class Tbl_Profile : EntityClass
-        {
-            [PrimaryKey(Identity = true)]
-            public int? Id_Perfil { get; set; }
-            public string? Nombres { get; set; }
-            public string? Apellidos { get; set; }
-            public DateTime? FechaNac { get; set; }
-            public int? IdUser { get; set; }
-            public string? Sexo { get; set; }
-            public string? Foto { get; set; }
-            public string? DNI { get; set; }
-            public string? Correo_institucional { get; set; }
-            public string? Estado { get; set; }
-        }
     }
+    public class Tbl_Profile : EntityClass
+    {
+        [PrimaryKey(Identity = true)]
+        public int? Id_Perfil { get; set; }
+        public string? Nombres { get; set; }
+        public string? Apellidos { get; set; }
+        public DateTime? FechaNac { get; set; }
+        public int? IdUser { get; set; }
+        public string? Sexo { get; set; }
+        public string? Foto { get; set; }
+        public string? DNI { get; set; }
+        public string? Correo_institucional { get; set; }
+        public string? Estado { get; set; }
+    }    
     public class Security_Permissions : EntityClass
     {
         [PrimaryKey(Identity = true)]
