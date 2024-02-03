@@ -85,11 +85,11 @@ namespace CAPA_DATOS
             }
             return entityProps;
         }
-        protected override string? BuildUpdateQueryByObject(object Inst, string IdObject)
+        protected override  (string?, List<IDbDataParameter>?) BuildUpdateQueryByObject(object Inst, string IdObject)
         {
             return BuildUpdateQueryByObject(Inst, new string[] { IdObject });
         }
-        protected override string? BuildUpdateQueryByObject(object Inst, string[] WhereProps)
+        protected override  (string?, List<IDbDataParameter>?) BuildUpdateQueryByObject(object Inst, string[] WhereProps)
         {
             string TableName = Inst.GetType().Name;
             string Values = "";
@@ -98,6 +98,7 @@ namespace CAPA_DATOS
             PropertyInfo[] lst = _type.GetProperties();
             List<EntityProps> entityProps = DescribeEntity(Inst.GetType().Name);
             int index = 0;
+            List<IDbDataParameter> parameters = new List<IDbDataParameter>();
             foreach (PropertyInfo oProperty in lst)
             {
                 string AtributeName = oProperty.Name;
@@ -107,7 +108,11 @@ namespace CAPA_DATOS
                 {
                     if ((from O in WhereProps where O == AtributeName select O).ToList().Count == 0)
                     {
-                        Values = BuildSetsForUpdate(Values, AtributeName, AtributeValue, EntityProp, oProperty);
+                        string paramName = "@" + AtributeName;
+                        Values = Values + $"{AtributeName} = {paramName},";
+                        IDbDataParameter parameter = CreateParameter(paramName, AtributeValue, EntityProp.DATA_TYPE, oProperty);
+                        parameters.Add(parameter);
+                        //Values = BuildSetsForUpdate(Values, AtributeName, AtributeValue, EntityProp, oProperty);
                     }
                     else WhereConstruction(ref Conditions, ref index, AtributeName, AtributeValue);
                 }
@@ -116,11 +121,11 @@ namespace CAPA_DATOS
             Values = Values.TrimEnd(',');
             if (Values == "")
             {
-                return null;
+                return (null, null);
             }
             string strQuery = "UPDATE  " + entityProps[0].TABLE_SCHEMA + "." + TableName + " SET " + Values + Conditions;
             LoggerServices.AddMessageInfo(strQuery);
-            return strQuery;
+            return (strQuery, parameters);
         }
         protected override string BuildDeleteQuery(object Inst)
         {
@@ -400,6 +405,52 @@ namespace CAPA_DATOS
             // paginación
             queryString = queryString + " OFFSET " + (pageNum - 1) * pageSize + " ROWS FETCH NEXT " + pageSize + " ROWS ONLY";
             return (queryString, queryCount);
+        }
+
+        public override IDbDataParameter CreateParameter(string name, object value, string dataType, PropertyInfo oProperty)
+        {
+            SqlDbType sqlDbType;
+            switch (dataType)
+            {
+                case "nvarchar":
+                case "varchar":
+                case "char":
+                    sqlDbType = SqlDbType.NVarChar;
+                    break;
+                case "int":
+                case "float":
+                    sqlDbType = SqlDbType.Float;
+                    break;
+                case "decimal":
+                    sqlDbType = SqlDbType.Decimal;
+                    break;
+                case "bigint":
+                case "money":
+                case "smallint":
+                    sqlDbType = SqlDbType.Int;
+                    break;
+                case "bit":
+                    sqlDbType = SqlDbType.Bit;
+                    break;
+                case "datetime":
+                case "date":
+                    sqlDbType = SqlDbType.DateTime;
+                    break;
+                default:
+                    throw new ArgumentException($"Tipo de datos no soportado: {dataType}");
+            }
+
+            JsonProp? jsonPropAttribute = (JsonProp?)Attribute.GetCustomAttribute(oProperty, typeof(JsonProp));
+            if (jsonPropAttribute != null)
+            {
+                // Tratar como JSON
+                string jsonValue = JsonConvert.SerializeObject(value);
+                return new SqlParameter(name, sqlDbType) { Value = JValue.Parse(jsonValue).ToString(Formatting.Indented) };
+            }
+            else
+            {
+                return new SqlParameter(name, sqlDbType) { Value = value };
+            }
         }
 
     }

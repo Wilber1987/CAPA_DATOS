@@ -28,8 +28,8 @@ namespace CAPA_DATOS
         protected abstract (string queryResults, string queryCount) BuildSelectQueryPaginated(object Inst, string CondSQL,
             int pageNum, int pageSize, string orderBy, string orderDir, bool fullEntity = true, bool isFind = true);
 
-        protected abstract string? BuildUpdateQueryByObject(object Inst, string IdObject);
-        protected abstract string? BuildUpdateQueryByObject(object Inst, string[] WhereProps);
+        protected abstract (string?, List<IDbDataParameter>?) BuildUpdateQueryByObject(object Inst, string IdObject);
+        protected abstract (string?, List<IDbDataParameter>?) BuildUpdateQueryByObject(object Inst, string[] WhereProps);
         protected abstract string BuildDeleteQuery(object Inst);
         protected abstract string BuildSetsForUpdate(string Values, string AtributeName,
         object AtributeValue, EntityProps EntityProp, PropertyInfo oProperty);
@@ -137,16 +137,32 @@ namespace CAPA_DATOS
                 LoggerServices.AddMessageInfo("-- > ROLLBACK TRANSACTION <=================");
             }
             this.MTConnection = null;
-        }
-        public object ExcuteSqlQuery(string? strQuery)
+        }        
+        public object ExcuteSqlQuery(string? strQuery, List<IDbDataParameter>? parameters = null)
         {
             try
             {
                 var com = ComandoSql(strQuery, SQLMCon);
                 com.Transaction = this.MTransaccion;
+
+                // Agregar parámetros si se proporcionan
+                if (parameters != null && parameters.Count > 0)
+                {
+                    foreach (var parameter in parameters)
+                    {
+                        com.Parameters.Add(parameter);
+                    }
+                }
+
                 var scalar = com.ExecuteScalar();
-                if (scalar == (object)DBNull.Value) return true;
-                else return Convert.ToInt32(scalar);
+                if (scalar == DBNull.Value)
+                {
+                    return true;
+                }
+                else
+                {
+                    return Convert.ToInt32(scalar);
+                }
             }
             catch (System.Exception ex)
             {
@@ -154,7 +170,6 @@ namespace CAPA_DATOS
                 throw;
             }
         }
-
         private void ReStartData(Exception ex)
         {
             if (this.MTransaccion?.Connection?.State == System.Data.ConnectionState.Open)
@@ -164,10 +179,10 @@ namespace CAPA_DATOS
             if (this.SQLMCon?.State == System.Data.ConnectionState.Open)
             {
                 this.SQLMCon.Close();
-            } 
+            }
             globalTransaction = false;
             this.MTConnection = null;
-            this.MTransaccion = null;                              
+            this.MTransaccion = null;
         }
 
         public DataTable TraerDatosSQL(string queryString)
@@ -196,12 +211,12 @@ namespace CAPA_DATOS
             List<PropertyInfo> manyToOneProps = entityProps.Where(p => Attribute.GetCustomAttribute(p, typeof(ManyToOne)) != null).ToList();
             // SELECCIONAR LOS VALORES DE LAS LLAVES PRIMARIAS DE LOS MANYTOONE
             SetManyToOnePropiertys(entity, manyToOneProps);
-            string? strQuery = BuildInsertQueryByObject(entity);
+            (string? strQuery,  List<IDbDataParameter>? parameters) = BuildInsertQueryByObjectParameters(entity);
             if (strQuery == null)
             {
                 return null;
             }
-            object idGenerated = ExcuteSqlQuery(strQuery);
+            object idGenerated = ExcuteSqlQuery(strQuery, parameters);
 
             if (pimaryKeyPropiertys.Count == 1)
             {
@@ -309,7 +324,8 @@ namespace CAPA_DATOS
             List<PropertyInfo> manyToOneProps = entityProps.Where(p => Attribute.GetCustomAttribute(p, typeof(ManyToOne)) != null).ToList();
             // SELECCIONAR LOS VALORES DE LAS LLAVES PRIMARIAS DE LOS MANYTOONE
             SetManyToOnePropiertys(entity, manyToOneProps);
-            string? strQuery = BuildUpdateQueryByObject(entity, IdObject);
+            (string? strQuery, List<IDbDataParameter>? parameters) = BuildUpdateQueryByObject(entity, IdObject);
+        
 
             List<PropertyInfo> oneToManyPropiertys = entityProps.Where(p =>
                 Attribute.GetCustomAttribute(p, typeof(OneToMany)) != null).ToList();
@@ -339,7 +355,7 @@ namespace CAPA_DATOS
 
             if (strQuery != null)
             {
-                ExcuteSqlQuery(strQuery);
+                ExcuteSqlQuery(strQuery, parameters);
             }
             return entity;
         }
@@ -352,8 +368,8 @@ namespace CAPA_DATOS
                     + IdObject + " en la instancia "
                     + Inst.GetType().Name + " esta en nulo y no es posible actualizar");
             }
-            string? strQuery = BuildUpdateQueryByObject(Inst, IdObject);
-            return ExcuteSqlQuery(strQuery);
+            (string? strQuery, List<IDbDataParameter>? parameters) = BuildUpdateQueryByObject(Inst, IdObject);
+            return ExcuteSqlQuery(strQuery, parameters);
         }
         public object Delete(Object Inst)
         {
@@ -561,6 +577,49 @@ namespace CAPA_DATOS
             string QUERY = "INSERT INTO " + entityProps[0].TABLE_SCHEMA + "." + Inst.GetType().Name + "(" + ColumnNames + ") VALUES(" + Values + ") SELECT SCOPE_IDENTITY()";
             LoggerServices.AddMessageInfo(QUERY);
             return QUERY;
+        }
+        public abstract IDbDataParameter CreateParameter(string name, object value, string dataType, PropertyInfo oProperty);
+        protected (string?, List<IDbDataParameter>?) BuildInsertQueryByObjectParameters(object Inst)
+        {
+            string ColumnNames = "";
+            string Values = "";
+            List<IDbDataParameter> parameters = new List<IDbDataParameter>();
+
+            Type _type = Inst.GetType();
+            PropertyInfo[] lst = _type.GetProperties();
+            List<EntityProps> entityProps = DescribeEntity(Inst.GetType().Name);
+
+            foreach (PropertyInfo oProperty in lst)
+            {
+                string AtributeName = oProperty.Name;
+                var AtributeValue = oProperty.GetValue(Inst);
+                var EntityProp = entityProps.Find(e => e.COLUMN_NAME == AtributeName);
+                if (AtributeValue != null && EntityProp != null)
+                {
+                    string paramName = "@" + AtributeName;
+                    ColumnNames += AtributeName + ",";
+                    Values += paramName + ",";
+                    IDbDataParameter parameter = CreateParameter(paramName, AtributeValue, EntityProp.DATA_TYPE, oProperty);
+                    parameters.Add(parameter);
+                }
+                else continue;
+            }
+
+            ColumnNames = ColumnNames.TrimEnd(',');
+            Values = Values.TrimEnd(',');
+
+            if (Values == "")
+            {
+                return (null, null);
+            }
+
+            string QUERY = $"INSERT INTO {entityProps[0].TABLE_SCHEMA}.{Inst.GetType().Name} ({ColumnNames}) VALUES({Values}) SELECT SCOPE_IDENTITY()";
+            LoggerServices.AddMessageInfo(QUERY);
+
+            // Adición de parámetros al comando SQL (puedes usar un objeto SqlCommand para ejecutar esto)
+            // sqlCommand.Parameters.AddRange(parameters.ToArray());
+
+            return (QUERY, parameters);
         }
         /*BuildSqlDateConverterQuery debe ser reescrita segun la implementacion
          del motor de base de datos, este ejemplo es para sql server*/
