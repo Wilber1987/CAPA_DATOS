@@ -69,7 +69,7 @@ namespace CAPA_DATOS.Security
         [OneToMany(TableName = "Security_Users_Roles", KeyColumn = "Id_User", ForeignKeyColumn = "Id_User")]
         public List<Security_Users_Roles>? Security_Users_Roles { get; set; }
 
-        public Tbl_Profile? Tbl_Profile { get; set; }
+        //public Tbl_Profile? Tbl_Profile { get; set; }
         public Security_Users? GetUserData()
         {
             Security_Users? user = this.Find<Security_Users>();
@@ -111,21 +111,14 @@ namespace CAPA_DATOS.Security
                         throw new Exception("Correo en uso");
                     }
                     Save();
-                    if (Tbl_Profile != null)
+                    new Tbl_Profile()
                     {
-                        Tbl_Profile.Save();
-                    }
-                    else
-                    {
-                        new Tbl_Profile()
-                        {
-                            Nombres = this.Nombres,
-                            Estado = this.Estado,
-                            Correo_institucional = this.Mail,
-                            Foto = "\\Media\\profiles\\avatar.png",
-                            IdUser = Id_User
-                        }.Save();
-                    }
+                        Nombres = this.Nombres,
+                        Estado = this.Estado,
+                        Correo_institucional = this.Mail,
+                        Foto = "\\Media\\profiles\\avatar.png",
+                        IdUser = Id_User
+                    }.Save();
 
                 }
                 else
@@ -203,6 +196,7 @@ namespace CAPA_DATOS.Security
             return Update();
         }
     }
+
     public class Tbl_Profile : EntityClass
     {
         [PrimaryKey(Identity = true)]
@@ -216,7 +210,7 @@ namespace CAPA_DATOS.Security
         public string? DNI { get; set; }
         public string? Correo_institucional { get; set; }
         public string? Estado { get; set; }
-    }    
+    }
     public class Security_Permissions : EntityClass
     {
         [PrimaryKey(Identity = true)]
