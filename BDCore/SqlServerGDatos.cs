@@ -196,7 +196,7 @@ namespace CAPA_DATOS
                         (string subquery, _) = BuildSelectQuery(oneToOneInstance, condition, pimaryKeyPropiertys.Find(p => pkInfo.Identity) != null);
                         Columns = Columns + AtributeName
                             + " = JSON_QUERY(("
-                            + BuildSelectQuery(oneToOneInstance, condition, pimaryKeyPropiertys.Find(p => pkInfo.Identity) != null)
+                            + subquery
                             + " FOR JSON PATH,  ROOT('object') ),'$.object[0]'),";
                     }
                 }
