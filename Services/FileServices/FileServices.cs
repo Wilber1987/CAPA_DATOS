@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using MimeKit;
 
 namespace CAPA_DATOS.Services
@@ -15,6 +16,7 @@ namespace CAPA_DATOS.Services
                 {
                     Directory.CreateDirectory(Ruta);
                 }
+                Attach.Value = ExtractBase64(Attach.Value);
                 if (!IsBase64String(Attach.Value))
                 {
                     return new ResponseService()
@@ -151,6 +153,23 @@ namespace CAPA_DATOS.Services
         {
             Span<byte> buffer = new Span<byte>(new byte[base64.Length]);
             return Convert.TryFromBase64String(base64, buffer, out int bytesParsed);
+        }
+        static string ExtractBase64(string input)
+        {
+            // Utilizamos una expresión regular para extraer la cadena base64
+            // después de "data:image/png;base64," o cualquier otro tipo de encabezado
+            // que pueda aparecer.
+            Regex regex = new Regex(@"data:[^;]+;base64,(.+)");
+            Match match = regex.Match(input);
+
+            if (match.Success)
+            {
+                // El valor capturado está en el grupo 1
+                return match.Groups[1].Value;
+            }
+
+            // Si no hay coincidencia, simplemente devolvemos la cadena original
+            return input;
         }
         public static string setImage(string image)
         {
