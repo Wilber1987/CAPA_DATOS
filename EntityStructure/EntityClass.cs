@@ -18,6 +18,9 @@ public abstract class EntityClass : TransactionalClass
     }
     public List<T> Where<T>(params FilterData[] where_condition)
     {
+        if(where_condition.Where(c => c.Values == null || c.Values?.Count == 0).ToList().Count > 0){
+            return new List<T>();
+        }
         if (filterData == null)
             filterData = new List<FilterData>();
             
