@@ -45,7 +45,22 @@ namespace CAPA_DATOS
             var da = new SqlDataAdapter((SqlCommand)comandoSql);
             return da;
         }
-        public override DataTable ExecuteProcedure(object Inst, List<object> Params)
+        public override DataTable ExecuteProcedureWithSQL(object Inst, List<object> Params)
+        {
+            IDbCommand? Command = buildProcedureCommand(Inst, Params);
+            DataTable Table = TraerDatosSQL(Command);
+            return Table;
+        }
+        public override object ExecuteProcedure(object Inst, List<object> Params)
+        {
+            IDbCommand? Command = buildProcedureCommand(Inst, Params);
+            Command?.Connection?.Open();
+            Command?.ExecuteNonQuery();
+            Command?.Connection?.Close();
+            return  true;
+        }
+
+        private IDbCommand? buildProcedureCommand(object Inst, List<object> Params)
         {
             var conec = CrearConexion(ConexionString);
             var Command = ComandoSql(Inst.GetType().Name, conec);
@@ -67,10 +82,11 @@ namespace CAPA_DATOS
                     i++;
                 }
             }
-            DataTable Table = TraerDatosSQL(Command);
-            return Table;
+
+            return Command;
         }
 
+       
         protected override List<EntityProps> DescribeEntity(string entityName)
         {
             string DescribeQuery = @"SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, TABLE_SCHEMA

@@ -21,7 +21,8 @@ namespace CAPA_DATOS
 		protected abstract IDataAdapter CrearDataAdapterSql(string comandoSql, IDbConnection connection);
 		protected abstract IDataAdapter CrearDataAdapterSql(IDbCommand comandoSql);
 		protected abstract List<EntityProps> DescribeEntity(string entityName);
-		public abstract DataTable ExecuteProcedure(object Inst, List<object> Params);
+		public abstract object ExecuteProcedure(object Inst, List<object> Params);
+		public abstract DataTable ExecuteProcedureWithSQL(object Inst, List<object> Params);
 		protected abstract (string queryResults, string queryCount) BuildSelectQuery(object Inst, string CondSQL,
 			bool fullEntity = true, bool isFind = true, string? orderBy = null, string? orderDir = null);
 
@@ -501,7 +502,7 @@ namespace CAPA_DATOS
 		{
 			try
 			{
-				DataTable Table = ExecuteProcedure(Inst, Params);
+				DataTable Table = ExecuteProcedureWithSQL(Inst, Params);
 				List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
 				return ListD;
 			}
