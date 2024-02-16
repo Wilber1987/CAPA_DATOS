@@ -201,6 +201,11 @@ namespace Security
             controllerString.AppendLine("       public List<" + table.TABLE_NAME + "> get" + table.TABLE_NAME + "(" + table.TABLE_NAME + " Inst) {");
             controllerString.AppendLine("           return Inst.Get<" + table.TABLE_NAME + ">();");
             controllerString.AppendLine("       }");
+            controllerString.AppendLine("       [HttpPost]");
+            controllerString.AppendLine("       [AuthController]");
+            controllerString.AppendLine("       public " + table.TABLE_NAME + " find" + table.TABLE_NAME + "(" + table.TABLE_NAME + " Inst) {");
+            controllerString.AppendLine("           return Inst.Find<" + table.TABLE_NAME + ">();");
+            controllerString.AppendLine("       }");
             if (schemaType.TABLE_TYPE == "BASE TABLE")
             {
                 controllerString.AppendLine("       [HttpPost]");
@@ -319,7 +324,7 @@ namespace Security
             entityString.AppendLine("   }");
         }
 
-        public static void setCSharpHeaders(out StringBuilder entityString, out StringBuilder controllerString, string schema, string type)
+        public static void setCSharpHeaders(out StringBuilder entityString, string schema, string type)
         {
             entityString = new StringBuilder();
             entityString.AppendLine("using CAPA_DATOS;");
@@ -330,7 +335,9 @@ namespace Security
             entityString.AppendLine("using System.Threading.Tasks;");
 
             entityString.AppendLine("namespace DataBaseModel {");
-
+        }
+        public static void setControllerCSharpHeaders(out StringBuilder controllerString, string schema, string type)
+        {
             controllerString = new StringBuilder();
             controllerString.AppendLine("using DataBaseModel;");
             controllerString.AppendLine("using Security;");
@@ -346,7 +353,7 @@ namespace Security
             controllerString.AppendLine("   public class  Api" + (type == "VIEW" ? "View" : "Entity") + AppGenerator.Utility.capitalize(schema) + "Controller : ControllerBase {");
         }
        
-        public static void createCSharpView(string name)
+        public static void createCSharpView(string name, string schema)
         {
             if (name.ToLower().StartsWith("relational") || name.ToLower().StartsWith("detail"))
             {
@@ -364,7 +371,7 @@ namespace Security
 }
 <script src='~/Views/" + name + @"View.js' type='module'></script>
 <div id='MainBody'></div>");
-            AppGenerator.Utility.createFile(@"../AppGenerateFiles/" + (name.Contains("Catalogo") ? "PagesCatalogos" : "PagesViews") + "\\" + name + "View.cshtml", pageString.ToString());
+            AppGenerator.Utility.createFile($"../AppGenerateFiles/{schema}/" + (name.Contains("Catalogo") ? "PagesCatalogos" : "PagesViews") + "\\" + name + "View.cshtml", schema, pageString.ToString());
         }
 
     }

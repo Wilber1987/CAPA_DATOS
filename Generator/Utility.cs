@@ -8,17 +8,18 @@ namespace AppGenerator
 {
     internal class Utility
     {
-        public static void createFile(string path, string text)
+        public static void createFile(string path, string directory,  string text)
         {
-            DirectoryInfo di = Directory.CreateDirectory(@"../AppGenerateFiles/");
-            DirectoryInfo di1 = Directory.CreateDirectory(@"../AppGenerateFiles/FrontModel");
-            DirectoryInfo di8 = Directory.CreateDirectory(@"../AppGenerateFiles/Security");
-            DirectoryInfo di2 = Directory.CreateDirectory(@"../AppGenerateFiles/Model");
-            DirectoryInfo di3 = Directory.CreateDirectory(@"../AppGenerateFiles/Controllers");
-            DirectoryInfo di4 = Directory.CreateDirectory(@"../AppGenerateFiles/Views");
-            DirectoryInfo di7 = Directory.CreateDirectory(@"../AppGenerateFiles/Pages");
-            DirectoryInfo di5 = Directory.CreateDirectory(@"../AppGenerateFiles/PagesViews");
-            DirectoryInfo di6 = Directory.CreateDirectory(@"../AppGenerateFiles/PagesCatalogos");
+            DirectoryInfo di = Directory.CreateDirectory($"../AppGenerateFiles/{directory}/");
+            DirectoryInfo di1 = Directory.CreateDirectory($"../AppGenerateFiles/{directory}/FrontModel");
+            DirectoryInfo dia = Directory.CreateDirectory($"../AppGenerateFiles/{directory}/FrontModel/ModelComponent");
+            DirectoryInfo di8 = Directory.CreateDirectory($"../AppGenerateFiles/{directory}/Security");
+            DirectoryInfo di2 = Directory.CreateDirectory($"../AppGenerateFiles/{directory}/Model");
+            DirectoryInfo di3 = Directory.CreateDirectory($"../AppGenerateFiles/{directory}/Controllers");
+            DirectoryInfo di4 = Directory.CreateDirectory($"../AppGenerateFiles/{directory}/Views");
+            DirectoryInfo di7 = Directory.CreateDirectory($"../AppGenerateFiles/{directory}/Pages");
+            DirectoryInfo di5 = Directory.CreateDirectory($"../AppGenerateFiles/{directory}/PagesViews");
+            DirectoryInfo di6 = Directory.CreateDirectory($"../AppGenerateFiles/{directory}/PagesCatalogos");
             // Create the file, or overwrite if the file exists.
             using (FileStream fs = File.Create(path))
             {
