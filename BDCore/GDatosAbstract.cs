@@ -10,19 +10,51 @@ namespace CAPA_DATOS
 {
 	public abstract class GDatosAbstract
 	{
+		/**
+		Esta propiedad abstracta define una conexión a la base de datos. La clase derivada debe implementar esta propiedad para proporcionar una instancia de IDbConnection (por ejemplo, SqlConnection para SQL Server o MySqlConnection para MySQL).
+		*/
 		protected abstract IDbConnection SQLMCon { get; }
+		/**
+		Esta variable almacena la cadena de conexión a la base de datos. Debe ser inicializada por la clase derivada antes de usarla para establecer la conexión.
+		*/
 		protected String? ConexionString;
+		/**
+		Esta variable representa una transacción de base de datos. Puede ser nula si no se está utilizando una transacción.
+		*/
 		protected IDbTransaction? MTransaccion;
+		/**
+		Esta variable indica si se está utilizando una transacción global (que abarca múltiples operaciones) o no.
+		*/
 		protected bool globalTransaction;
+		/**
+		Esta variable representa otra conexión de base de datos. Al igual que MTransaccion, puede ser nula si no se está utilizando.
+		*/
 		protected IDbConnection? MTConnection;
+		/**
+		Este método abstracto debe ser implementado por las clases derivadas para crear y devolver una instancia de IDbConnection utilizando la cadena de conexión proporcionada.
+		*/
 		protected abstract IDbConnection CrearConexion(string cadena);
-		protected abstract IDbCommand ComandoSql(string comandoSql,
-												 IDbConnection connection);
+		/**
+		Este método abstracto crea un objeto IDbCommand (por ejemplo, SqlCommand o MySqlCommand) para ejecutar una consulta SQL en la base de datos.
+		*/
+		protected abstract IDbCommand ComandoSql(string comandoSql, IDbConnection connection);
+		/*
+		Este método abstracto crea un objeto IDataAdapter (por ejemplo, SqlDataAdapter o MySqlDataAdapter) para llenar un DataSet con los resultados de una consulta SQL.		
+		*/
 		protected abstract IDataAdapter CrearDataAdapterSql(string comandoSql, IDbConnection connection);
+		/*
+		Similar al método anterior, pero crea un IDataAdapter a partir de un objeto IDbCommand.
+		*/
 		protected abstract IDataAdapter CrearDataAdapterSql(IDbCommand comandoSql);
-		protected abstract List<EntityProps> DescribeEntity(string entityName);
+		/*
+		Este método abstracto ejecuta un procedimiento almacenado o función en la base de datos y devuelve un objeto como resultado.
+		*/
 		public abstract object ExecuteProcedure(object Inst, List<object> Params);
+		/*
+		Similar al método anterior, pero devuelve un DataTable con los resultados.
+		*/
 		public abstract DataTable ExecuteProcedureWithSQL(object Inst, List<object> Params);
+		protected abstract List<EntityProps> DescribeEntity(string entityName);
 		protected abstract (string queryResults, string queryCount) BuildSelectQuery(object Inst, string CondSQL,
 			bool fullEntity = true, bool isFind = true, string? orderBy = null, string? orderDir = null);
 
@@ -49,6 +81,10 @@ namespace CAPA_DATOS
 
 
 		#region ADO.NET METHODS
+		/**
+		* Método para probar la conexión a la base de datos.
+		* Devuelve verdadero si la conexión es exitosa, de lo contrario, lanza una excepción.
+		*/
 		public bool TestConnection()
 		{
 			try
@@ -62,6 +98,7 @@ namespace CAPA_DATOS
 				throw;
 			}
 		}
+
 		public void BeginTransaction()
 		{
 			if (this.globalTransaction)
@@ -139,6 +176,14 @@ namespace CAPA_DATOS
 			}
 			this.MTConnection = null;
 		}
+
+		/**
+		* Método para ejecutar una consulta SQL en la base de datos.
+		* Devuelve el resultado de la consulta o lanza una excepción en caso de error.
+		* @param strQuery Consulta SQL a ejecutar.
+		* @param parameters Lista de parámetros (opcional) para la consulta.
+		* @return El resultado de la consulta o verdadero si no hay resultados.
+		*/
 		public object ExcuteSqlQuery(string? strQuery, List<IDbDataParameter>? parameters = null)
 		{
 			try
@@ -171,6 +216,11 @@ namespace CAPA_DATOS
 				throw;
 			}
 		}
+
+		/**
+		 * Reinicia los datos de conexión y transacción en caso de excepción.
+		 * @param ex Excepción que provocó la reinicialización.
+		 */
 		private void ReStartData(Exception ex)
 		{
 			if (this.MTransaccion?.Connection?.State == System.Data.ConnectionState.Open)
@@ -186,6 +236,11 @@ namespace CAPA_DATOS
 			this.MTransaccion = null;
 		}
 
+		/**
+		 * Ejecuta una consulta SQL y devuelve los resultados en un DataTable.
+		 * @param queryString Consulta SQL a ejecutar.
+		 * @return DataTable con los resultados de la consulta.
+		 */
 		public DataTable TraerDatosSQL(string queryString)
 		{
 			try
@@ -201,8 +256,12 @@ namespace CAPA_DATOS
 				LoggerServices.AddMessageError("error in TraerDatosSQL", ex);
 				throw;
 			}
-
 		}
+		/**
+		 * Ejecuta una consulta SQL y devuelve los resultados en un DataTable.
+		 * @param Command Comando SQL a ejecutar.
+		 * @return DataTable con los resultados de la consulta.
+		 */
 		public DataTable TraerDatosSQL(IDbCommand Command)
 		{
 			DataSet ObjDS = new DataSet();
@@ -774,7 +833,6 @@ namespace CAPA_DATOS
 		}
 		//DATA SQUEMA
 		#endregion
-
 
 	}
 

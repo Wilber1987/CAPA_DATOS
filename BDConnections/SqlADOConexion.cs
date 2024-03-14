@@ -64,9 +64,7 @@ public class SqlADOConexion
 
     private static bool createConexion(string SQLServer, string SGBD_USER, string SWGBD_PASSWORD, string BDNAME)
     {
-        UserSQLConexion = "Data Source=" + SQLServer +
-           "; Initial Catalog=" + BDNAME + "; User ID="
-           + SGBD_USER + ";Password=" + SWGBD_PASSWORD + ";MultipleActiveResultSets=true";
+        UserSQLConexion = $"Data Source={SQLServer}; Initial Catalog={BDNAME}; User ID={SGBD_USER};Password={SWGBD_PASSWORD};MultipleActiveResultSets=true";
         SQLM = new SqlServerGDatos(UserSQLConexion);
         if (SQLM.TestConnection()) return true;
         else
