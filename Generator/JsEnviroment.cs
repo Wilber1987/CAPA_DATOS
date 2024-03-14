@@ -12,11 +12,12 @@ namespace AppGenerator
         public static void setJsHeaders(out StringBuilder entityString)
         {
             entityString = new StringBuilder();
+            entityString.AppendLine("//@ts-check");
             entityString.AppendLine("import { EntityClass } from \"../../WDevCore/WModules/EntityClass.js\";");
             entityString.AppendLine("import { WAjaxTools, BasicStates } from \"../../WDevCore/WModules/WComponentsTools.js\";");
             entityString.AppendLine("import { ModelProperty } from \"../../WDevCore/WModules/CommonModel.js\";");
         }
-        public static void mapJsModel(StringBuilder entityString, EntitySchema table, string schema, string typeshema)
+        public static void mapJsModel(StringBuilder entityString, StringBuilder jsEntityString, EntitySchema table, string schema, string typeshema)
         {
             entityString.AppendLine("class " + table.TABLE_NAME + "_ModelComponent extends EntityClass {");
             entityString.AppendLine("   constructor(props) {");
@@ -60,6 +61,7 @@ namespace AppGenerator
                 string controlType = "WSELECT";
                 entityString.AppendLine("   /**@type {ModelProperty}*/ " + entity.REFERENCE_TABLE_NAME + " = { type: '" + controlType
                    + "',  ModelObject: ()=> new " + entity.REFERENCE_TABLE_NAME + "_ModelComponent()};");
+                jsEntityString.AppendLine("import { "+ entity.REFERENCE_TABLE_NAME + "_ModelComponent } "+ $" from './{entity.REFERENCE_TABLE_NAME}_ModelComponent.js'");
                 continue;
 
             }
@@ -81,13 +83,16 @@ namespace AppGenerator
                 {
                     entityString.AppendLine("   /**@type {ModelProperty}*/ " + entity.FKTABLE_NAME +
                      " = { type: '" + mapType + "',  ModelObject: ()=> new " + entity.FKTABLE_NAME + "_ModelComponent()};");
+                    jsEntityString.AppendLine("import { "+ entity.FKTABLE_NAME + "_ModelComponent } "+ $" from './{entity.FKTABLE_NAME}_ModelComponent.js'");
+               
                 }
             }
             entityString.AppendLine("}");
             entityString.AppendLine("export { " + table.TABLE_NAME + "_ModelComponent }");
         }
-        public static void mapJsEntity(StringBuilder entityString, EntitySchema table, string schema, string typeshema)
+        public static void mapJsEntity(StringBuilder entityString, StringBuilder jsEntityString, EntitySchema table, string schema, string typeshema)
         {
+
             entityString.AppendLine("class " + table.TABLE_NAME + " extends EntityClass {");
             entityString.AppendLine("   constructor(props) {");
             entityString.AppendLine("       super(props, '" + (typeshema == "VIEW" ? "View" : "Entity") + Utility.capitalize(schema) + "');");
@@ -121,17 +126,20 @@ namespace AppGenerator
                     entityString.AppendLine("   /**@type {" + type + "}*/ " + entity.COLUMN_NAME + ";");
                 }
 
-            }
+            }            
             foreach (var entity in SqlADOConexion.SQLM.ManyToOneKeys($"{table.TABLE_SCHEMA}.{table.TABLE_NAME}"))
             {
                 var oneToMany = SqlADOConexion.SQLM.oneToManyKeys($"{table.TABLE_NAME}", $"{table.TABLE_SCHEMA}");
                 var find = oneToMany.Find(o => o.FKTABLE_NAME == table.TABLE_NAME);
                 entityString.AppendLine("   /**@type {" + entity.REFERENCE_TABLE_NAME + "} ManyToOne*/ " + entity.REFERENCE_TABLE_NAME + ";");
+                jsEntityString.AppendLine("import { "+ entity.REFERENCE_TABLE_NAME + " } "+ $" from './{entity.REFERENCE_TABLE_NAME}.js'");
                 continue;
             }
             foreach (var entity in SqlADOConexion.SQLM.oneToManyKeys($"{table.TABLE_NAME}", $"{table.TABLE_SCHEMA}"))
             {
                 entityString.AppendLine("   /**@type {Array<" + entity.FKTABLE_NAME + ">} OneToMany*/ " + entity.FKTABLE_NAME + ";");
+                jsEntityString.AppendLine("import { "+ entity.FKTABLE_NAME + " } "+ $" from './{entity.FKTABLE_NAME}.js'");
+                
             }
             entityString.AppendLine("}");
             entityString.AppendLine("export { " + table.TABLE_NAME + " }");

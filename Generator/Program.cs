@@ -11,19 +11,23 @@ namespace AppGenerate
         {
             try
             {
-                SqlADOConexion.IniciarConexionAnonima();
+                //SqlADOConexion.IniciarConexionAnonima();
                 StringBuilder indexBuilder = AppGenerator.CSharpEnviroment.CSharpIndexBuilder();
                 foreach (var schema in SqlADOConexion.SQLM.databaseSchemas())
                 {
                     foreach (var schemaType in SqlADOConexion.SQLM.databaseTypes())
                     {
-                        StringBuilder entityString, controllerString, jsEntityString, jsEntityComponentString;
-                        AppGenerator.CSharpEnviroment.setCSharpHeaders(out entityString, out controllerString, schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
-                        AppGenerator.JsEnviroment.setJsHeaders(out jsEntityString);
-                        AppGenerator.JsEnviroment.setJsHeaders(out jsEntityComponentString);
+                        StringBuilder controllerString;
+                        AppGenerator.CSharpEnviroment.setControllerCSharpHeaders(out controllerString, schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
                         var describeSchema = SqlADOConexion.SQLM.describeSchema(schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
                         foreach (var table in describeSchema)
                         {
+                            StringBuilder entityString, jsEntityString, jsEntityComponentString, jsEntityHeaderString, jsEntityHeaderComponentString;
+                            jsEntityString = new StringBuilder();
+                            jsEntityComponentString = new StringBuilder();
+                            AppGenerator.CSharpEnviroment.setCSharpHeaders(out entityString, schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
+                            AppGenerator.JsEnviroment.setJsHeaders(out jsEntityHeaderString);
+                            AppGenerator.JsEnviroment.setJsHeaders(out jsEntityHeaderComponentString);
                             if (table.TABLE_NAME == "sysdiagrams")
                             {
                                 continue;
@@ -31,35 +35,39 @@ namespace AppGenerate
                             //BUILD ENTITY
                             AppGenerator.CSharpEnviroment.mapCSharpEntity(entityString, table);
 
-                            AppGenerator.JsEnviroment.mapJsEntity(jsEntityString, table, schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
-                            AppGenerator.JsEnviroment.mapJsModel(jsEntityComponentString, table, schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
+                            AppGenerator.JsEnviroment.mapJsEntity(jsEntityString, jsEntityHeaderString, table, schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
+                            AppGenerator.JsEnviroment.mapJsModel(jsEntityComponentString, jsEntityHeaderComponentString, table, schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
 
                             //BUILD ENTITY CONTROLLER
                             AppGenerator.CSharpEnviroment.buildApiController(schemaType, controllerString, table);
                             if (!table.TABLE_NAME.ToLower().StartsWith("catalogo"))
                             {
-                                AppGenerator.JsEnviroment.setJsViewBuilder(schema.TABLE_SCHEMA, table.TABLE_NAME, schemaType.TABLE_TYPE);
+                                // AppGenerator.JsEnviroment.setJsViewBuilder(schema.TABLE_SCHEMA, table.TABLE_NAME, schemaType.TABLE_TYPE);
                             }
                             AppGenerator.CSharpEnviroment.CSharpIndexBuilder(indexBuilder, table);
+                            entityString.AppendLine("}");
+                            AppGenerator.JsEnviroment.setJsCatalogoBuilder(schema.TABLE_SCHEMA,
+                                describeSchema.Where(t => t.TABLE_NAME.ToLower().StartsWith("catalogo")).Select(s => s.TABLE_NAME).ToList());
+
+                            createFile(entityString.ToString(), table.TABLE_NAME, schemaType.TABLE_TYPE, schema.TABLE_SCHEMA);
+                            createDataBaseJSModelFile(jsEntityHeaderString.ToString() + jsEntityString.ToString(), table.TABLE_NAME, schemaType.TABLE_TYPE, schema.TABLE_SCHEMA);
+                            createDataBaseJSModelCompFile(jsEntityHeaderComponentString.ToString() + jsEntityComponentString.ToString(), table.TABLE_NAME, schemaType.TABLE_TYPE, schema.TABLE_SCHEMA);
 
                         }
-                        entityString.AppendLine("}");
+
                         controllerString.AppendLine("   }");
                         controllerString.AppendLine("}");
-                        AppGenerator.JsEnviroment.setJsCatalogoBuilder(schema.TABLE_SCHEMA,
-                            describeSchema.Where(t => t.TABLE_NAME.ToLower().StartsWith("catalogo")).Select(s => s.TABLE_NAME).ToList());
-                        createDataBaseModelFile(entityString.ToString(), schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
-                        createDataBaseJSModelFile(jsEntityString.ToString(), schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
-                        createDataBaseJSModelCompFile(jsEntityComponentString.ToString(), schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
-                        createApiControllerFile(controllerString.ToString(), schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
+                        createApiControllerFile(controllerString.ToString(), schema.TABLE_SCHEMA, schemaType.TABLE_TYPE, schema.TABLE_SCHEMA);
+
                     }
+                    //AppGenerator.Utility.createFile($"../AppGenerateFiles/{schema.TABLE_SCHEMA}/Controllers/SecurityController.cs", schema.TABLE_SCHEMA, AppGenerator.CSharpEnviroment.buildApiSecurityController());
+                    //AppGenerator.Utility.createFile($"../AppGenerateFiles/{schema.TABLE_SCHEMA}/Security/AuthNetcore.cs", schema.TABLE_SCHEMA, AppGenerator.CSharpEnviroment.body);
+                    //AppGenerator.Utility.createFile($"../AppGenerateFiles/{schema.TABLE_SCHEMA}/Pages/LoginView.cshtml", schema.TABLE_SCHEMA, AppGenerator.CSharpEnviroment.loginString);
+                    indexBuilder.Append(AppGenerator.CSharpEnviroment.transactionalMenu);
+                    indexBuilder.Append(AppGenerator.CSharpEnviroment.catalogoMenu);
+                    AppGenerator.Utility.createFile($"../AppGenerateFiles/{schema.TABLE_SCHEMA}/Pages/Index.cshtml", schema.TABLE_SCHEMA, indexBuilder.ToString());
                 }
-                AppGenerator.Utility.createFile(@"../AppGenerateFiles/Controllers\SecurityController.cs", AppGenerator.CSharpEnviroment.buildApiSecurityController());
-                AppGenerator.Utility.createFile(@"../AppGenerateFiles/Security\AuthNetcore.cs", AppGenerator.CSharpEnviroment.body);
-                AppGenerator.Utility.createFile(@"../AppGenerateFiles/Pages\LoginView.cshtml", AppGenerator.CSharpEnviroment.loginString);
-                indexBuilder.Append(AppGenerator.CSharpEnviroment.transactionalMenu);
-                indexBuilder.Append(AppGenerator.CSharpEnviroment.catalogoMenu);
-                AppGenerator.Utility.createFile(@"../AppGenerateFiles/Pages\Index.cshtml", indexBuilder.ToString());
+
             }
 
             catch (Exception ex)
@@ -68,26 +76,26 @@ namespace AppGenerate
             }
         }
 
-        public static void createDataBaseModelFile(string contain, string name, string type)
+        public static void createFile(string contain, string name, string type, string schema)
         {
-            AppGenerator.Utility.createFile(@"../AppGenerateFiles/Model\" + AppGenerator.Utility.capitalize(name) + (type == "VIEW" ? "ViewModel.cs" : "DataBaseModel.cs"), contain);
+            AppGenerator.Utility.createFile($"../AppGenerateFiles/{schema}/Model/" + AppGenerator.Utility.capitalize(name) + (type == "VIEW" ? "ViewModel.cs" : ".cs"), schema, contain);
 
         }
 
-        public static void createDataBaseJSModelFile(string contain, string name, string type)
+        public static void createDataBaseJSModelFile(string contain, string name, string type, string schema)
         {
-            AppGenerator.Utility.createFile(@"../AppGenerateFiles/FrontModel\" + AppGenerator.Utility.capitalize(name) + (type == "VIEW" ? "ViewModel.js" : "DataBaseModel.js"), contain);
+            AppGenerator.Utility.createFile($"../AppGenerateFiles/{schema}/FrontModel/" + AppGenerator.Utility.capitalize(name) + (type == "VIEW" ? "ViewModel.js" : ".js"), schema, contain);
 
         }
-         public static void createDataBaseJSModelCompFile(string contain, string name, string type)
+        public static void createDataBaseJSModelCompFile(string contain, string name, string type, string schema)
         {
-            AppGenerator.Utility.createFile(@"../AppGenerateFiles/FrontModel\" + AppGenerator.Utility.capitalize(name) + (type == "VIEW" ? "ViewModel.js" : "ComponentsModel.js"), contain);
+            AppGenerator.Utility.createFile($"../AppGenerateFiles/{schema}/FrontModel/ModelComponent/" + AppGenerator.Utility.capitalize(name) + (type == "VIEW" ? "ViewModel.js" : "_ModelComponent.js"), schema, contain);
 
         }
 
-        public static void createApiControllerFile(string contain, string name, string type)
+        public static void createApiControllerFile(string contain, string name, string type, string schema)
         {
-            AppGenerator.Utility.createFile(@"../AppGenerateFiles/Controllers\Api" + (type == "VIEW" ? "View" : "Entity") + AppGenerator.Utility.capitalize(name) + "Controller.cs", contain);
+            AppGenerator.Utility.createFile($"../AppGenerateFiles/{schema}/Controllers/Api" + (type == "VIEW" ? "View" : "Entity") + AppGenerator.Utility.capitalize(schema) + "Controller.cs", schema, contain);
 
         }
 
