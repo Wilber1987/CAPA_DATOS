@@ -795,6 +795,11 @@ namespace CAPA_DATOS
 						CondicionString = CondicionString + AtributeName + " LIKE '%" + filter?.Values?[0] + "%' ";
 					}
 					break;
+				case "LIMIT":
+				case "PAGINATE":
+				case "ASC":
+				case "DESC":
+					break;
 				default:
 					if (filter?.Values?.Count > 0)
 					{
@@ -822,7 +827,7 @@ namespace CAPA_DATOS
 			string CondicionString = "";
 			foreach (string? Value in conditions)
 			{
-				if (atributeType == "int" || atributeType == "Double" || atributeType == "Decimal" || atributeType == "int")
+				if (atributeType == "int" || atributeType == "Double" || atributeType == "Decimal" || atributeType == "Int32" || atributeType == "Int16")
 					CondicionString = CondicionString + Value?.ToString() + ",";
 				else
 					CondicionString = CondicionString + "'" + Value + "',";
