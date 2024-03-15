@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using AppGenerate;
 using CAPA_DATOS;
 
 namespace AppGenerator
@@ -24,10 +25,10 @@ namespace Security
         static private Security_Users security_User;
         static public bool Authenticate()
         {
-            if (SqlADOConexion.SQLM == null || SqlADOConexion.Anonimo || security_User == null)
+            if (AppGeneratorProgram.SQLDatabaseDescriptor == null || SqlADOConexion.Anonimo || security_User == null)
             {
                 security_User = null;
-                SqlADOConexion.SQLM = null;
+                AppGeneratorProgram.SQLDatabaseDescriptor = null;
                 return false;
             }
             return true;
@@ -52,7 +53,7 @@ namespace Security
                 if (security_User.Id_User == null)
                 {
                     security_User = null;
-                    SqlADOConexion.SQLM = null;
+                    AppGeneratorProgram.SQLDatabaseDescriptor = null;
                     throw new Exception();
                 }
                 return true;
@@ -65,7 +66,7 @@ namespace Security
 
         static public bool ClearSeason()
         {
-            SqlADOConexion.SQLM = null;
+            AppGeneratorProgram.SQLDatabaseDescriptor = null;
             security_User = null;
             return true;
 
@@ -224,7 +225,7 @@ namespace Security
         public static void mapCSharpEntity(StringBuilder entityString, EntitySchema table)
         {
             entityString.AppendLine("   public class " + table.TABLE_NAME + " : EntityClass {");
-            foreach (var entity in SqlADOConexion.SQLM.describeEntity(table.TABLE_NAME))
+            foreach (var entity in AppGeneratorProgram.SQLDatabaseDescriptor.describeEntity(table.TABLE_NAME))
             {
                 string type = "";
                 switch (entity.DATA_TYPE)
@@ -245,9 +246,9 @@ namespace Security
                     case "bit":case "binary(1)": type = "bool"; break;
                 }
 
-                if (SqlADOConexion.SQLM.isPrimary(table.TABLE_NAME, entity.COLUMN_NAME))
+                if (AppGeneratorProgram.SQLDatabaseDescriptor.isPrimary(table.TABLE_NAME, entity.COLUMN_NAME))
                 {
-                    var columnProps = SqlADOConexion.SQLM.describePrimaryKey(table.TABLE_NAME, entity.COLUMN_NAME);
+                    var columnProps = AppGeneratorProgram.SQLDatabaseDescriptor.describePrimaryKey(table.TABLE_NAME, entity.COLUMN_NAME);
                     entityString.AppendLine("       [PrimaryKey(Identity = " + (columnProps != null ? "true" : "false") + ")]");
                 }
                 entityString.AppendLine("       public " + type
@@ -256,18 +257,18 @@ namespace Security
 
             }
 
-            var ManyToOneKeys = SqlADOConexion.SQLM.ManyToOneKeys($"{table.TABLE_SCHEMA}.{table.TABLE_NAME}");
+            var ManyToOneKeys = AppGeneratorProgram.SQLDatabaseDescriptor.ManyToOneKeys($"{table.TABLE_SCHEMA}.{table.TABLE_NAME}");
             foreach (var entity in ManyToOneKeys)
             {
 
-                //var oneToMany = SqlADOConexion.SQLM.oneToManyKeys(entity.REFERENCE_TABLE_NAME);
+                //var oneToMany = AppGeneratorProgram.SQLDatabaseDescriptor.oneToManyKeys(entity.REFERENCE_TABLE_NAME);
                 //var find = oneToMany.Find(o => o.FKTABLE_NAME == table.TABLE_NAME);
                 //if (find == null)
                 //{
                 string relationalName = "ManyToOne";
-                int fkey = SqlADOConexion.SQLM.evalKeyType(table.TABLE_NAME, entity.CONSTRAINT_COLUMN_NAME, "PRIMARY KEY");
-                int nkeyTable = SqlADOConexion.SQLM.keyInformation(table.TABLE_NAME, "PRIMARY KEY");
-                int nkeyReferenceTable = SqlADOConexion.SQLM.keyInformation(entity.REFERENCE_TABLE_NAME, "PRIMARY KEY");
+                int fkey = AppGeneratorProgram.SQLDatabaseDescriptor.evalKeyType(table.TABLE_NAME, entity.CONSTRAINT_COLUMN_NAME, "PRIMARY KEY");
+                int nkeyTable = AppGeneratorProgram.SQLDatabaseDescriptor.keyInformation(table.TABLE_NAME, "PRIMARY KEY");
+                int nkeyReferenceTable = AppGeneratorProgram.SQLDatabaseDescriptor.keyInformation(entity.REFERENCE_TABLE_NAME, "PRIMARY KEY");
                 if (fkey == 1 && nkeyTable == 1 && nkeyReferenceTable == 1)
                 {
                     relationalName = "OneToOne";
@@ -290,13 +291,13 @@ namespace Security
                 //}
 
             }
-            var oneToManyKeys = SqlADOConexion.SQLM.oneToManyKeys($"{table.TABLE_NAME}", $"{table.TABLE_SCHEMA}");
+            var oneToManyKeys = AppGeneratorProgram.SQLDatabaseDescriptor.oneToManyKeys($"{table.TABLE_NAME}", $"{table.TABLE_SCHEMA}");
             foreach (var entity in oneToManyKeys)
             {
                 string relationalName = "OneToMany";
-                int fkey = SqlADOConexion.SQLM.evalKeyType(entity.FKTABLE_NAME, entity.FKCOLUMN_NAME, "PRIMARY KEY");
-                int nkeyTable = SqlADOConexion.SQLM.keyInformation(table.TABLE_NAME, "PRIMARY KEY");
-                int nkeyReferenceTable = SqlADOConexion.SQLM.keyInformation(entity.FKTABLE_NAME, "PRIMARY KEY");
+                int fkey = AppGeneratorProgram.SQLDatabaseDescriptor.evalKeyType(entity.FKTABLE_NAME, entity.FKCOLUMN_NAME, "PRIMARY KEY");
+                int nkeyTable = AppGeneratorProgram.SQLDatabaseDescriptor.keyInformation(table.TABLE_NAME, "PRIMARY KEY");
+                int nkeyReferenceTable = AppGeneratorProgram.SQLDatabaseDescriptor.keyInformation(entity.FKTABLE_NAME, "PRIMARY KEY");
                 if (fkey == 1 && nkeyTable == 1 && nkeyReferenceTable == 1)
                 {
                     relationalName = "OneToOne";

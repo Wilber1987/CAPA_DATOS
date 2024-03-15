@@ -2,24 +2,28 @@
 using System.IO;
 using System.Text;
 using CAPA_DATOS;
+using CAPA_DATOS.Generator;
 
 namespace AppGenerate
 {
-    public class Program
+    public class AppGeneratorProgram
     {
+        public static SQLDatabaseDescriptor SQLDatabaseDescriptor = new SQLDatabaseDescriptor(SqlADOConexion.SQLM?.GDatos);
+
         public static void Main()
         {
             try
             {
+                var SQLDatabaseDescriptor = new SQLDatabaseDescriptor(SqlADOConexion.SQLM?.GDatos);
                 //SqlADOConexion.IniciarConexionAnonima();
                 StringBuilder indexBuilder = AppGenerator.CSharpEnviroment.CSharpIndexBuilder();
-                foreach (var schema in SqlADOConexion.SQLM.databaseSchemas())
+                foreach (var schema in SQLDatabaseDescriptor.databaseSchemas())
                 {
-                    foreach (var schemaType in SqlADOConexion.SQLM.databaseTypes())
+                    foreach (var schemaType in SQLDatabaseDescriptor.databaseTypes())
                     {
                         StringBuilder controllerString;
                         AppGenerator.CSharpEnviroment.setControllerCSharpHeaders(out controllerString, schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
-                        var describeSchema = SqlADOConexion.SQLM.describeSchema(schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
+                        var describeSchema = SQLDatabaseDescriptor.describeSchema(schema.TABLE_SCHEMA, schemaType.TABLE_TYPE);
                         foreach (var table in describeSchema)
                         {
                             StringBuilder entityString, jsEntityString, jsEntityComponentString, jsEntityHeaderString, jsEntityHeaderComponentString;

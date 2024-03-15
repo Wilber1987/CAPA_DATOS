@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using AppGenerate;
 using CAPA_DATOS;
 
 namespace AppGenerator
@@ -27,7 +28,7 @@ namespace AppGenerator
             entityString.AppendLine("       }");
             entityString.AppendLine("   }");
             //entityString.AppendLine("   Namespace = '" + (typeshema == "VIEW" ? "View" : "Entity") + Utility.capitalize(schema) + "';");
-            foreach (var entity in SqlADOConexion.SQLM.describeEntity($"{table.TABLE_NAME}"))
+            foreach (var entity in AppGeneratorProgram.SQLDatabaseDescriptor.describeEntity($"{table.TABLE_NAME}"))
             {
                 string type = "";
                 switch (entity.DATA_TYPE)
@@ -47,16 +48,16 @@ namespace AppGenerator
                     case "date": type = "date"; break;
                     case "bit": case "binary": type = "checkbox"; break;
                 }
-                if (!SqlADOConexion.SQLM.isForeinKey(table.TABLE_NAME, entity.COLUMN_NAME))
+                if (!AppGeneratorProgram.SQLDatabaseDescriptor.isForeinKey(table.TABLE_NAME, entity.COLUMN_NAME))
                 {
                     entityString.AppendLine("   /**@type {ModelProperty}*/ " + entity.COLUMN_NAME + " = { type: '" + type + "'"
-                    + (SqlADOConexion.SQLM.isPrimary(table.TABLE_NAME, entity.COLUMN_NAME) ? ", primary: true" : "") + " };");
+                    + (AppGeneratorProgram.SQLDatabaseDescriptor.isPrimary(table.TABLE_NAME, entity.COLUMN_NAME) ? ", primary: true" : "") + " };");
                 }
 
             }
-            foreach (var entity in SqlADOConexion.SQLM.ManyToOneKeys($"{table.TABLE_SCHEMA}.{table.TABLE_NAME}"))
+            foreach (var entity in AppGeneratorProgram.SQLDatabaseDescriptor.ManyToOneKeys($"{table.TABLE_SCHEMA}.{table.TABLE_NAME}"))
             {
-                var oneToMany = SqlADOConexion.SQLM.oneToManyKeys($"{table.TABLE_NAME}", $"{table.TABLE_SCHEMA}");
+                var oneToMany = AppGeneratorProgram.SQLDatabaseDescriptor.oneToManyKeys($"{table.TABLE_NAME}", $"{table.TABLE_SCHEMA}");
                 var find = oneToMany.Find(o => o.FKTABLE_NAME == table.TABLE_NAME);
                 string controlType = "WSELECT";
                 entityString.AppendLine("   /**@type {ModelProperty}*/ " + entity.REFERENCE_TABLE_NAME + " = { type: '" + controlType
@@ -65,7 +66,7 @@ namespace AppGenerator
                 continue;
 
             }
-            foreach (var entity in SqlADOConexion.SQLM.oneToManyKeys($"{table.TABLE_NAME}", $"{table.TABLE_SCHEMA}"))
+            foreach (var entity in AppGeneratorProgram.SQLDatabaseDescriptor.oneToManyKeys($"{table.TABLE_NAME}", $"{table.TABLE_SCHEMA}"))
             {
                 string mapType = "MasterDetail";
                 if ((entity.FKTABLE_NAME.ToLower().StartsWith("catalogo") || (table.TABLE_NAME.ToLower().StartsWith("transaction")
@@ -101,7 +102,7 @@ namespace AppGenerator
             entityString.AppendLine("       }");
             entityString.AppendLine("   }");
             //entityString.AppendLine("   Namespace = '" + (typeshema == "VIEW" ? "View" : "Entity") + Utility.capitalize(schema) + "';");
-            foreach (var entity in SqlADOConexion.SQLM.describeEntity($"{table.TABLE_NAME}"))
+            foreach (var entity in AppGeneratorProgram.SQLDatabaseDescriptor.describeEntity($"{table.TABLE_NAME}"))
             {
                 string type = "";
                 switch (entity.DATA_TYPE)
@@ -121,21 +122,21 @@ namespace AppGenerator
                     case "date": type = "Date"; break;
                     case "bit": case "binary": type = "Boolean"; break;
                 }
-                if (!SqlADOConexion.SQLM.isForeinKey(table.TABLE_NAME, entity.COLUMN_NAME))
+                if (!AppGeneratorProgram.SQLDatabaseDescriptor.isForeinKey(table.TABLE_NAME, entity.COLUMN_NAME))
                 {
                     entityString.AppendLine("   /**@type {" + type + "}*/ " + entity.COLUMN_NAME + ";");
                 }
 
             }            
-            foreach (var entity in SqlADOConexion.SQLM.ManyToOneKeys($"{table.TABLE_SCHEMA}.{table.TABLE_NAME}"))
+            foreach (var entity in AppGeneratorProgram.SQLDatabaseDescriptor.ManyToOneKeys($"{table.TABLE_SCHEMA}.{table.TABLE_NAME}"))
             {
-                var oneToMany = SqlADOConexion.SQLM.oneToManyKeys($"{table.TABLE_NAME}", $"{table.TABLE_SCHEMA}");
+                var oneToMany = AppGeneratorProgram.SQLDatabaseDescriptor.oneToManyKeys($"{table.TABLE_NAME}", $"{table.TABLE_SCHEMA}");
                 var find = oneToMany.Find(o => o.FKTABLE_NAME == table.TABLE_NAME);
                 entityString.AppendLine("   /**@type {" + entity.REFERENCE_TABLE_NAME + "} ManyToOne*/ " + entity.REFERENCE_TABLE_NAME + ";");
                 jsEntityString.AppendLine("import { "+ entity.REFERENCE_TABLE_NAME + " } "+ $" from './{entity.REFERENCE_TABLE_NAME}.js'");
                 continue;
             }
-            foreach (var entity in SqlADOConexion.SQLM.oneToManyKeys($"{table.TABLE_NAME}", $"{table.TABLE_SCHEMA}"))
+            foreach (var entity in AppGeneratorProgram.SQLDatabaseDescriptor.oneToManyKeys($"{table.TABLE_NAME}", $"{table.TABLE_SCHEMA}"))
             {
                 entityString.AppendLine("   /**@type {Array<" + entity.FKTABLE_NAME + ">} OneToMany*/ " + entity.FKTABLE_NAME + ";");
                 jsEntityString.AppendLine("import { "+ entity.FKTABLE_NAME + " } "+ $" from './{entity.FKTABLE_NAME}.js'");

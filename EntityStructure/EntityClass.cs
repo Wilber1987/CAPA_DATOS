@@ -1,5 +1,7 @@
 ﻿using System.Data;
 using System.Reflection;
+using CAPA_DATOS.BDCore.Abstracts;
+using CAPA_DATOS.BDCore.SQLServerImplementations;
 
 namespace CAPA_DATOS;
 public abstract class EntityClass : TransactionalClass
@@ -18,12 +20,13 @@ public abstract class EntityClass : TransactionalClass
     }
     public List<T> Where<T>(params FilterData[] where_condition)
     {
-        if(where_condition.Where(c => c.Values == null || c.Values?.Count == 0).ToList().Count > 0){
+        if (where_condition.Where(c => c.Values == null || c.Values?.Count == 0).ToList().Count > 0)
+        {
             return new List<T>();
         }
         if (filterData == null)
             filterData = new List<FilterData>();
-            
+
         filterData.AddRange(where_condition.ToList());
         var Data = MTConnection?.TakeList<T>(this, true);
         return Data ?? new List<T>();
@@ -83,14 +86,14 @@ public abstract class EntityClass : TransactionalClass
     {
         try
         {
-            MTConnection?.BeginTransaction();
+            MTConnection?.GDatos.BeginTransaction();
             var result = MTConnection?.InsertObject(this);
-            MTConnection?.CommitTransaction();
+            MTConnection?.GDatos.CommitTransaction();
             return result;
         }
         catch (Exception e)
         {
-            MTConnection?.RollBackTransaction();
+            MTConnection?.GDatos.RollBackTransaction();
             LoggerServices.AddMessageError("ERROR: Save entity", e);
             throw;
         }
@@ -131,14 +134,14 @@ public abstract class EntityClass : TransactionalClass
     {
         try
         {
-            MTConnection?.BeginTransaction();
+            MTConnection?.GDatos.BeginTransaction();
             MTConnection?.UpdateObject(this, Id);
-            MTConnection?.CommitTransaction();
+            MTConnection?.GDatos.CommitTransaction();
             return true;
         }
         catch (Exception e)
         {
-            MTConnection?.RollBackTransaction();
+            MTConnection?.GDatos.RollBackTransaction();
             LoggerServices.AddMessageError("ERROR: Update entity ID", e);
             throw;
         }
@@ -147,14 +150,14 @@ public abstract class EntityClass : TransactionalClass
     {
         try
         {
-            MTConnection?.BeginTransaction();
+            MTConnection?.GDatos.BeginTransaction();
             MTConnection?.UpdateObject(this, Id);
-            MTConnection?.CommitTransaction();
+            MTConnection?.GDatos.CommitTransaction();
             return true;
         }
         catch (Exception e)
         {
-            MTConnection?.RollBackTransaction();
+            MTConnection?.GDatos.RollBackTransaction();
             LoggerServices.AddMessageError("ERROR: Update entity []ID", e);
             throw;
         }
@@ -163,17 +166,32 @@ public abstract class EntityClass : TransactionalClass
     {
         try
         {
-            MTConnection?.BeginTransaction();
+            MTConnection?.GDatos.BeginTransaction();
             MTConnection?.Delete(this);
-            MTConnection?.CommitTransaction();
+            MTConnection?.GDatos.CommitTransaction();
             return true;
         }
         catch (Exception e)
         {
-            MTConnection?.RollBackTransaction();
+            MTConnection?.GDatos.RollBackTransaction();
             LoggerServices.AddMessageError("ERROR: Update entity Delete", e);
             throw;
         }
+    }
+    public List<EntityProps> DescribeEntity(SqlEnumType sqlEnumType)
+    {
+        string? DescribeEntityQuery = sqlEnumType switch
+        {
+            SqlEnumType.SQL_SERVER => SQLServerEntityQuerys.DescribeEntityQuery,
+            _ => null
+        };
+        DataTable? Table = this.MTConnection?.GDatos.TraerDatosSQL(DescribeEntityQuery?.Replace("entityName", this.GetType().Name));
+        List<EntityProps> entityProps = AdapterUtil.ConvertDataTable<EntityProps>(Table, new EntityProps());
+        if (entityProps.Count == 0)
+        {
+            throw new Exception("La entidad buscada no existe: " + this.GetType().Name);
+        }
+        return entityProps;
     }
 }
 public abstract class StoreProcedureClass : TransactionalClass
@@ -181,7 +199,7 @@ public abstract class StoreProcedureClass : TransactionalClass
     public List<Object>? Parameters { get; set; }
     public ResponseService Execute()
     {
-        var DataProcedure = MTConnection?.ExecuteProcedure(this, Parameters);
+        var DataProcedure = MTConnection?.GDatos.ExecuteProcedure(this, Parameters);
         return new ResponseService
         {
             message = "Procedimiento ejecutado correctamente"
@@ -195,8 +213,8 @@ public abstract class StoreProcedureClass : TransactionalClass
 }
 public abstract class TransactionalClass
 {
-    private GDatosAbstract? Conection;
-    protected GDatosAbstract? MTConnection
+    private WDataMapper? Conection;
+    protected WDataMapper? MTConnection
     {
         get
         {
@@ -211,14 +229,14 @@ public abstract class TransactionalClass
     //TRANSACCIONES
     public void BeginGlobalTransaction()
     {
-        MTConnection?.BeginGlobalTransaction();
+        MTConnection?.GDatos.BeginGlobalTransaction();
     }
     public void CommitGlobalTransaction()
     {
-        MTConnection?.CommitGlobalTransaction();
+        MTConnection?.GDatos.CommitGlobalTransaction();
     }
     public void RollBackGlobalTransaction()
     {
-        MTConnection?.RollBackGlobalTransaction();
+        MTConnection?.GDatos.RollBackGlobalTransaction();
     }
 }
