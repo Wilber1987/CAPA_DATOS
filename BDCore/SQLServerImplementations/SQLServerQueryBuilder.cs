@@ -165,18 +165,30 @@ namespace CAPA_DATOS.BDCore.Implementations
                 CondicionString = CondicionString + " AND ";
             }
             Columns = Columns.TrimEnd(',');
+            
+			FilterData? filterLimit = ((List<FilterData>?)filterData?.GetValue(Inst))?.Find(f =>
+					f.FilterType?.ToLower().Contains("limit") == true);
 
-            string queryString = $"SELECT {Columns} FROM {entityProps[0].TABLE_SCHEMA}.{Inst.GetType().Name} as {tableAlias} {CondicionString} {CondSQL} ";
+			string queryString = $"SELECT {(filterLimit != null ? $" top {filterLimit?.Values?[0]}" : "")} {Columns} FROM {entityProps[0].TABLE_SCHEMA}.{Inst.GetType().Name} as {tableAlias} {CondicionString} {CondSQL} ";
 
+		
             PropertyInfo? primaryKeyPropierty = Inst?.GetType()?.GetProperties()?.ToList()?.Where(p => Attribute.GetCustomAttribute(p, typeof(PrimaryKey)) != null).FirstOrDefault();
-            if (orderBy != null)
-            {
-                queryString = queryString + $" ORDER BY {orderBy} {(orderDir == null ? "ASC" : "DESC")} ";
-            }
-            if (orderBy == null && primaryKeyPropierty != null)
-            {
-                queryString = queryString + " ORDER BY " + primaryKeyPropierty.Name + " DESC";
-            }
+            
+            var filterOrders = ((List<FilterData>?)filterData?.GetValue(Inst))?.Where(f =>
+					f.FilterType?.ToLower().Contains("asc") == true
+					 || f.FilterType?.ToLower().Contains("desc") == true).ToList();
+			if (orderBy != null)
+			{
+				queryString = queryString + $" ORDER BY {orderBy} {(orderDir == null ? "ASC" : "DESC")} ";
+			}
+			else if (orderBy == null && filterOrders != null && filterOrders.Count != 0)
+			{
+				queryString = queryString + $" Order by {String.Join(", ", filterOrders.Select(o => $" {o.PropName} {o.FilterType} "))}";
+			}
+			else if (orderBy == null && primaryKeyPropierty != null)
+			{
+				queryString = queryString + " ORDER BY " + primaryKeyPropierty.Name + " DESC";
+			}
             string queryStringCount = $" SELECT count(*) FROM {entityProps[0].TABLE_SCHEMA}.{Inst?.GetType().Name} as {tableAlias} {CondicionString} {CondSQL};";
 
             return (queryString, queryStringCount);
