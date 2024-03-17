@@ -250,12 +250,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
                 string? attributeName = oneToManyProp.Name;
                 var attributeValue = oneToManyProp.GetValue(entity);
                 if (attributeValue != null)
-                {
-                    // Filtra las propiedades ManyToOne en el objeto relacionado
-                    List<PropertyInfo> attributeValueManyToOneProps = attributeValue.GetType().GetProperties().Where(p => Attribute.GetCustomAttribute(p, typeof(ManyToOne)) != null).ToList();
-                    // Establece los valores de las claves externas para las relaciones ManyToOne en el objeto relacionado
-                    SetManyToOneProperties((EntityClass)attributeValue, attributeValueManyToOneProps);
-
+                {      
                     // Obtiene la información del atributo OneToMany
                     OneToMany? oneToMany = (OneToMany?)Attribute.GetCustomAttribute(oneToManyProp, typeof(OneToMany));
 

@@ -109,6 +109,37 @@ namespace CAPA_DATOS.Services
 			};
 			return AttachFiles;
 		}
+		public static ModelFiles ReceiveFiles(string path, MimePart attachment)
+		{
+			string Carpeta = @"\wwwroot\Media\" + path;
+			string Ruta = Directory.GetCurrentDirectory() + Carpeta;
+			if (!Directory.Exists(Ruta))
+			{
+				Directory.CreateDirectory(Ruta);
+			}
+			//var fileName = attachment.ContentDisposition?.FileName ?? attachment.ContentType.Name;
+
+			//byte[] datos = ObtenerDatosMimeEntity(attachment);           
+			string FileType = GetFileType(attachment.ContentType.MimeType);
+			string FileName = Guid.NewGuid().ToString() + FileType;
+			string FileRoute = Ruta + FileName;
+			//File.WriteAllBytes(FileRoute, datos);
+			string RutaRelativa = Path.GetRelativePath(Directory.GetCurrentDirectory(), FileRoute);
+
+			using (var stream = File.Create(FileRoute))
+			{
+				var part = (MimePart)attachment;
+				part.Content.DecodeTo(stream);
+			}
+
+			ModelFiles AttachFiles = new ModelFiles
+			{
+				Name = attachment.ContentType.Name,
+				Value = RutaRelativa,
+				Type = FileType
+			};
+			return AttachFiles;
+		}
 		static byte[] ObtenerDatosMimeEntity(MimeEntity mimeEntity)
 		{
 			using (MemoryStream stream = new MemoryStream())
