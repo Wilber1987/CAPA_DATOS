@@ -42,6 +42,11 @@ namespace CAPA_DATOS.Services
                 var AccessToken = await Auth2Utils.GetAccessTokenAsync(mailConfig);
 
                 var message = new MimeMessage();
+                if (toMails == null || toMails.Count == 0)
+                {
+                    return false;
+
+                }
                 toMails.ForEach(m =>
                 {
                     string? mail = obtainMail(m);
@@ -96,6 +101,10 @@ namespace CAPA_DATOS.Services
         }
         public static string? obtainMail(string inputString)
         {
+            if (IsValidEmail(inputString))
+            {
+                return new MailAddress(inputString).Address;
+            }
             // Utilizamos una expresión regular para buscar direcciones de correo electrónico
             string pattern = @"<([^>]+)>"; // Buscará lo que esté dentro de los corchetes angulares
             Regex regex = new Regex(pattern);
@@ -114,6 +123,18 @@ namespace CAPA_DATOS.Services
                 return null;
             }
         }
+        static bool IsValidEmail(string email)
+        {
+            try
+            {
+                var addr = new MailAddress(email);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
         public static bool SendMailBasic(string from,
             List<string> toMails,
             string subject,
@@ -126,6 +147,11 @@ namespace CAPA_DATOS.Services
                 //var templatePage = Path.Combine(System.IO.Path.GetFullPath("../UI/Pages/Mails"), path);
                 MailMessage correo = new MailMessage();
                 correo.From = new MailAddress(config.USERNAME, "HELPDESK", System.Text.Encoding.UTF8);//Correo de salida
+                if (toMails == null || toMails.Count == 0)
+                {
+                    return false;
+
+                }
                 foreach (string toMail in toMails)
                 {
                     correo.To.Add(toMail); //Correos de destino
