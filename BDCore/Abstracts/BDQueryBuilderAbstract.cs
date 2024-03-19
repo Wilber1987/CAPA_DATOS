@@ -9,7 +9,7 @@ using Newtonsoft.Json.Linq;
 
 namespace CAPA_DATOS.BDCore.Abstracts
 {
-    public abstract class BDQueryBuilderAbastract
+    public abstract class BDQueryBuilderAbstract
     {
         public abstract (string queryResults, string queryCount) BuildSelectQuery(EntityClass Inst, string CondSQL,
             bool fullEntity = true, bool isFind = true, string? orderBy = null, string? orderDir = null);
@@ -20,10 +20,8 @@ namespace CAPA_DATOS.BDCore.Abstracts
         public abstract (string?, List<IDbDataParameter>?) BuildUpdateQueryByObject(EntityClass Inst, string IdObject);
         public abstract (string?, List<IDbDataParameter>?) BuildUpdateQueryByObject(EntityClass Inst, string[] WhereProps);
         public abstract string BuildDeleteQuery(EntityClass Inst);
-        public abstract string BuildSetsForUpdate(string Values, string AtributeName,
-            object AtributeValue, EntityProps EntityProp, PropertyInfo oProperty);
 
-     
+
         #region  QUERYBUILDER IMPLEMANTATIONS
         /*Este método BuildInsertQueryByObject se encarga de construir una consulta de inserción SQL basada en los datos proporcionados 
 		por una instancia de objeto Inst.
@@ -223,7 +221,8 @@ namespace CAPA_DATOS.BDCore.Abstracts
         protected abstract SqlEnumType GetSqlType();
 
         /*BuildSqlDateConverterQuery debe ser reescrita segun la implementacion
-del motor de base de datos, este ejemplo es para sql server*/
+        del motor de base de datos, este ejemplo es para sql server*/
+        [Obsolete("metodo no se esta utilizando")]
         private static string BuildSqlDateConverterQuery(string Values, object AtributeValue)
         {
             return Values + "CONVERT(DATETIME,'" + ((DateTime)AtributeValue).ToString("yyyyMMdd HH:mm:ss") + "'),";
@@ -237,31 +236,40 @@ del motor de base de datos, este ejemplo es para sql server*/
             char ta5 = (char)(((int)'A') + new Random().Next(26));
             return ta.ToString() + ta2 + ta3 + "_" + ta4 + "_" + ta5;
         }
+        /*Este método WhereConstruction se encarga de construir dinámicamente las condiciones de una cláusula
+        WHERE en una consulta SQL, basándose en el nombre y el valor de una propiedad del objeto EntityClass.
+        este método es responsable de construir las condiciones de una cláusula WHERE de una consulta SQL, teniendo en 
+        cuenta el tipo de valor de la propiedad y agregándolas a la cadena de condiciones CondicionString.*/
         protected void WhereConstruction(ref string CondicionString, ref int index, string AtributeName, object AtributeValue)
         {
             if (AtributeValue != null)
             {
+                // Verifica si el valor es una cadena corta y construye una condición LIKE para buscar coincidencias parciales
                 if (AtributeValue?.GetType() == typeof(string) && AtributeValue?.ToString()?.Length < 200)
                 {
-                    WhereOrAnd(ref CondicionString);
+                    WhereOrAnd(ref CondicionString); // Agrega AND u OR si es necesario
                     CondicionString = CondicionString + AtributeName + " LIKE '%" + AtributeValue.ToString() + "%' ";
                 }
+                // Verifica si el valor es del tipo DateTime y construye una condición para comparar fechas
                 else if (AtributeValue?.GetType() == typeof(DateTime))
                 {
                     WhereOrAnd(ref CondicionString);
                     CondicionString = CondicionString + AtributeName
                         + "= '" + ((DateTime)AtributeValue).ToString("yyyy/MM/dd") + "' ";
                 }
+                // Verifica si el valor es del tipo int o int? y construye una condición de igualdad
                 else if (AtributeValue?.GetType() == typeof(int) || AtributeValue?.GetType() == typeof(int?))
                 {
                     WhereOrAnd(ref CondicionString);
                     CondicionString = CondicionString + AtributeName + "=" + AtributeValue?.ToString() + " ";
                 }
+                // Verifica si el valor es del tipo Double y lo convierte en formato float para la comparación
                 else if (AtributeValue?.GetType() == typeof(Double))
                 {
                     WhereOrAnd(ref CondicionString);
                     CondicionString = CondicionString + AtributeName + "= cast('" + AtributeValue?.ToString()?.Replace(",", ".") + "' as float)  ";
                 }
+                // Verifica si el valor es del tipo Decimal y lo convierte en formato decimal para la comparación
                 else if (AtributeValue?.GetType() == typeof(Decimal))
                 {
                     WhereOrAnd(ref CondicionString);
@@ -269,59 +277,66 @@ del motor de base de datos, este ejemplo es para sql server*/
                 }
             }
         }
-
+        /*Este método construye una condición SQL basada en el filtro proporcionado y el tipo de datos de la propiedad.
+        Los comentarios explican cada sección del código y su propósito.*/
         protected string SetFilterValueCondition(PropertyInfo[] props, FilterData filter)
         {
-            string CondicionString = "";
-            PropertyInfo? prop = props.ToList().Find(p => p.Name.Equals(filter?.PropName));
-            string? atributeType = "";
-            string AtributeName = "";
+            string CondicionString = ""; // String donde se construirá la condición SQL
+            PropertyInfo? prop = props.ToList().Find(p => p.Name.Equals(filter?.PropName)); // Obtiene la propiedad correspondiente al nombre proporcionado en el filtro
+            string? atributeType = ""; // Tipo de datos de la propiedad
+            string AtributeName = ""; // Nombre de la propiedad
+
+            // Verifica si la propiedad existe
             if (prop != null)
             {
-                AtributeName = prop.Name;
-                var propertyType = Nullable.GetUnderlyingType(prop?.PropertyType) ?? prop?.PropertyType;
-                atributeType = propertyType?.Name;
+                AtributeName = prop.Name; // Obtiene el nombre de la propiedad
+                var propertyType = Nullable.GetUnderlyingType(prop?.PropertyType) ?? prop?.PropertyType; // Obtiene el tipo de datos de la propiedad
+                atributeType = propertyType?.Name; // Obtiene el nombre del tipo de datos
             }
+
+            // Evalúa el tipo de filtro
             switch (filter.FilterType?.ToUpper())
             {
                 case "AND":
                 case "OR":
+                    // Si el filtro es AND u OR y tiene subfiltros, construye una condición compuesta recursivamente
                     if (filter.Filters != null && filter.Filters.Count != 0)
                     {
                         CondicionString += $" ({string.Join($" {filter.FilterType} ", filter.Filters.Select(f => SetFilterValueCondition(props, f)))})";
                     }
                     break;
                 case "BETWEEN":
+                    // Si el filtro es BETWEEN, construye una condición para un rango de valores
                     if (filter?.Values?.Count > 0)
                     {
-                        // WhereOrAnd(ref CondicionString);
                         if (atributeType == "DateTime")
                         {
+                            // Para valores DateTime, construye la condición con conversiones adecuadas
                             CondicionString = CondicionString + " ( " +
-                               (filter?.Values?[0] != null ? AtributeName + "  >= " + "CONVERT(DATETIME,'" + Convert.ToDateTime(filter.Values[0]).ToString("yyyyMMdd HH:mm:ss") + "')" + "  " : " ") +
-                               (filter?.Values?.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
-                               (filter?.Values?.Count > 1 ? AtributeName + " <= " + "CONVERT(DATETIME,'" + Convert.ToDateTime(filter.Values[1]).ToString("yyyyMMdd HH:mm:ss") + "')" + " ) " : ") ");
+                                (filter?.Values?[0] != null ? AtributeName + "  >= " + "CONVERT(DATETIME,'" + Convert.ToDateTime(filter.Values[0]).ToString("yyyyMMdd HH:mm:ss") + "')" + "  " : " ") +
+                                (filter?.Values?.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
+                                (filter?.Values?.Count > 1 ? AtributeName + " <= " + "CONVERT(DATETIME,'" + Convert.ToDateTime(filter.Values[1]).ToString("yyyyMMdd HH:mm:ss") + "')" + " ) " : ") ");
                         }
-                        else if (atributeType == "Int32"
-                                            || atributeType == "Double"
-                                            || atributeType == "Decimal"
-                                            || atributeType == "int")
+                        else if (atributeType == "Int32" || atributeType == "Double" || atributeType == "Decimal" || atributeType == "int")
                         {
+                            // Para otros tipos numéricos, construye la condición directamente
                             CondicionString = CondicionString + " ( " +
-                               (filter?.Values?[0] != null ? AtributeName + "  >= " + filter.Values[0] + "  " : " ") +
-                               (filter?.Values?.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
-                               (filter?.Values?.Count > 1 ? AtributeName + " <= " + filter.Values[1] + " ) " : ") ");
+                                (filter?.Values?[0] != null ? AtributeName + "  >= " + filter.Values[0] + "  " : " ") +
+                                (filter?.Values?.Count > 1 && filter.Values[0] != null ? " AND " : " ") +
+                                (filter?.Values?.Count > 1 ? AtributeName + " <= " + filter.Values[1] + " ) " : ") ");
                         }
                     }
                     break;
                 case "IN":
                 case "NOT IN":
+                    // Si el filtro es IN o NOT IN, construye una condición para comparar con una lista de valores
                     if (filter?.Values?.Count > 0)
                     {
                         CondicionString = CondicionString + AtributeName + $" {filter?.FilterType} (" + BuildArrayIN(filter?.Values, atributeType) + ") ";
                     }
                     break;
                 case "LIKE":
+                    // Si el filtro es LIKE, construye una condición para buscar coincidencias parciales
                     if (filter?.Values?.Count > 0)
                     {
                         CondicionString = CondicionString + AtributeName + " LIKE '%" + filter?.Values?[0] + "%' ";
@@ -331,8 +346,10 @@ del motor de base de datos, este ejemplo es para sql server*/
                 case "PAGINATE":
                 case "ASC":
                 case "DESC":
+                    // Estos tipos de filtro no requieren construcción de condición
                     break;
                 default:
+                    // Para otros tipos de filtro, construye una condición de comparación simple
                     if (filter?.Values?.Count > 0)
                     {
                         if (atributeType == "int" || atributeType == "Double" || atributeType == "Decimal" || atributeType == "int")
@@ -343,7 +360,79 @@ del motor de base de datos, este ejemplo es para sql server*/
                     break;
             }
 
-            return CondicionString;
+            return CondicionString; // Devuelve la condición construida
+        }
+        //TODO VERIFICAR LUEGO
+        protected (string condition, List<IDbDataParameter> parameters) SetFilterValueConditionWithParameters(PropertyInfo[] props, FilterData filter)
+        {
+            string condition = ""; // String donde se construirá la condición SQL
+            List<IDbDataParameter> parameters = new List<IDbDataParameter>(); // Lista de parámetros SQL
+
+            PropertyInfo? prop = props.ToList().Find(p => p.Name.Equals(filter?.PropName)); // Obtiene la propiedad correspondiente al nombre proporcionado en el filtro
+            string? attributeType = ""; // Tipo de datos de la propiedad
+            string attributeName = ""; // Nombre de la propiedad
+
+            // Verifica si la propiedad existe
+            if (prop != null)
+            {
+                attributeName = prop.Name; // Obtiene el nombre de la propiedad
+                var propertyType = Nullable.GetUnderlyingType(prop?.PropertyType) ?? prop?.PropertyType; // Obtiene el tipo de datos de la propiedad
+                attributeType = propertyType?.Name; // Obtiene el nombre del tipo de datos
+            }
+
+            // Evalúa el tipo de filtro
+            switch (filter.FilterType?.ToUpper())
+            {
+                case "AND":
+                case "OR":
+                    // Si el filtro es AND u OR y tiene subfiltros, construye una condición compuesta recursivamente
+                    if (filter.Filters != null && filter.Filters.Count != 0)
+                    {
+                        condition += $" ({string.Join($" {filter.FilterType} ", filter.Filters.Select(f => SetFilterValueCondition(props, f)))})";
+                    }
+                    break;
+                case "BETWEEN":
+                    // Si el filtro es BETWEEN, construye una condición para un rango de valores
+                    if (filter?.Values?.Count == 2)
+                    {
+                        condition += $" {attributeName} BETWEEN @param{parameters.Count} AND @param{parameters.Count + 1}";
+                        parameters.Add(CreateParameter($"@param{parameters.Count}", filter.Values[0], attributeType, prop));
+                        parameters.Add(CreateParameter($"@param{parameters.Count}", filter.Values[1], attributeType, prop));
+                    }
+                    break;
+                case "IN":
+                case "NOT IN":
+                    // Si el filtro es IN o NOT IN, construye una condición para comparar con una lista de valores
+                    if (filter?.Values?.Count > 0)
+                    {
+                        condition += $" {attributeName} {filter.FilterType} ({BuildArrayIN(filter?.Values, attributeType)})";
+                    }
+                    break;
+                case "LIKE":
+                    // Si el filtro es LIKE, construye una condición para buscar coincidencias parciales
+                    if (filter?.Values?.Count > 0)
+                    {
+                        condition += $" {attributeName} LIKE @param{parameters.Count}";
+                        parameters.Add(CreateParameter($"@param{parameters.Count}", $"%{filter.Values[0]}%", "nvarchar", prop));
+                    }
+                    break;
+                case "LIMIT":
+                case "PAGINATE":
+                case "ASC":
+                case "DESC":
+                    // Estos tipos de filtro no requieren construcción de condición
+                    break;
+                default:
+                    // Para otros tipos de filtro, construye una condición de comparación simple
+                    if (filter?.Values?.Count > 0)
+                    {
+                        condition += $" {attributeName} {filter.FilterType} @param{parameters.Count}";
+                        parameters.Add(CreateParameter($"@param{parameters.Count}", filter.Values[0], attributeType, prop));
+                    }
+                    break;
+            }
+
+            return (condition, parameters); // Devuelve la condición construida y la lista de parámetros SQL
         }
 
 
@@ -354,20 +443,23 @@ del motor de base de datos, este ejemplo es para sql server*/
             else
                 CondicionString += " AND ";
         }
+        /*Este método recorre una lista de valores y los agrega a una cadena separados por comas. Si los valores son numéricos, no se agregan comillas
+         alrededor de ellos; de lo contrario, se agregan comillas simples. La función luego elimina la coma final antes de devolver la cadena construida.*/
         public static string BuildArrayIN(List<string?> conditions, string atributeType = "string")
         {
-            string CondicionString = "";
+            string CondicionString = ""; // Cadena donde se construirán los valores para la cláusula IN
             foreach (string? Value in conditions)
             {
+                // Verifica el tipo de datos de la propiedad para formatear adecuadamente los valores
                 if (atributeType == "int" || atributeType == "Double" || atributeType == "Decimal" || atributeType == "Int32" || atributeType == "Int16")
-                    CondicionString = CondicionString + Value?.ToString() + ",";
+                    CondicionString = CondicionString + Value?.ToString() + ","; // Agrega el valor a la cadena
                 else
-                    CondicionString = CondicionString + "'" + Value + "',";
-
+                    CondicionString = CondicionString + "'" + Value + "',"; // Agrega el valor entre comillas simples a la cadena
             }
-            CondicionString = CondicionString.TrimEnd(',');
-            return CondicionString;
+            CondicionString = CondicionString.TrimEnd(','); // Elimina la última coma de la cadena
+            return CondicionString; // Devuelve la cadena de valores
         }
+
         //DATA SQUEMA
         #endregion
     }

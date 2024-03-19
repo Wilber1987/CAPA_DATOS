@@ -10,14 +10,14 @@ namespace CAPA_DATOS.BDCore.Abstracts
 {
     public class WDataMapper
     {      
-        public WDataMapper(GDatosAbstract GDatos, BDQueryBuilderAbastract QueryBuilder)
+        public WDataMapper(GDatosAbstract GDatos, BDQueryBuilderAbstract QueryBuilder)
         {
             this.GDatos = GDatos;
             this.QueryBuilder = QueryBuilder;
         }
 
         public GDatosAbstract GDatos { get ; set; }
-        public BDQueryBuilderAbastract QueryBuilder { get; set; }
+        public BDQueryBuilderAbstract QueryBuilder { get; set; }
 
         #region ORM INSERT, DELETE, UPDATES METHODS
 
