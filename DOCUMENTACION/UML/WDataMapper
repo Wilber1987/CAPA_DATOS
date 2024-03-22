@@ -1,0 +1,56 @@
+@startuml
+
+abstract class GDatosAbstract {
+    - SQLMCon: IDbConnection
+    - ConexionString: String
+    - MTransaccion: IDbTransaction
+    - globalTransaction: bool
+    - MTConnection: IDbConnection
+    {abstract} + CrearConexion(cadena: string): IDbConnection
+    {abstract} + ComandoSql(comandoSql: string, connection: IDbConnection): IDbCommand
+    {abstract} + CrearDataAdapterSql(comandoSql: string, connection: IDbConnection): IDataAdapter
+    {abstract} + CrearDataAdapterSql(comandoSql: IDbCommand): IDataAdapter
+    {abstract} + ExecuteProcedure(Inst: object, Params: List<object>): object
+    {abstract} + ExecuteProcedureWithSQL(Inst: object, Params: List<object>): DataTable
+    + TestConnection(): bool
+    + ExcuteSqlQuery(strQuery: string, parameters: List<IDbDataParameter>): object
+    + ReStartData(ex: Exception): void
+    + TraerDatosSQL(queryString: string): DataTable
+    + TraerDatosSQL(Command: IDbCommand): DataTable
+    + BeginTransaction(): void
+    + CommitTransaction(): void
+    + RollBackTransaction(): void
+    + BeginGlobalTransaction(): void
+    + CommitGlobalTransaction(): void
+    + RollBackGlobalTransaction(): void
+}
+
+interface IDbConnection
+class String
+interface IDbTransaction
+class List
+class IDbCommand
+interface IDataAdapter
+class DataSet
+class DataTable
+class Exception
+enum ConnectionState {
+    Open
+}
+
+GDatosAbstract --|> IDbConnection
+GDatosAbstract --|> IDbTransaction
+GDatosAbstract --|> IDataAdapter
+GDatosAbstract *-- IDbCommand
+GDatosAbstract *-- DataSet
+GDatosAbstract *-- Exception
+IDbConnection <|.. SQLMCon: "1"
+String <|-- ConexionString: "1"
+IDbTransaction <|.. MTransaccion: "1"
+IDbConnection <|.. MTConnection: "1"
+IDbConnection <..* List: "1"
+IDataAdapter <|..* DataSet: "1"
+DataSet <.. DataTable: "1"
+IDbConnection --> ConnectionState
+
+@enduml
