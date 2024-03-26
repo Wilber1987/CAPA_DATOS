@@ -16,14 +16,14 @@ namespace CAPA_DATOS.Generator
         public List<EntitySchema> databaseSchemas()
         {
             string DescribeQuery = @"SELECT TABLE_SCHEMA FROM [INFORMATION_SCHEMA].[TABLES]  group by TABLE_SCHEMA";
-            DataTable Table = Connection.TraerDatosSQL(DescribeQuery);
+            DataTable Table = Connection.TraerDatosSQL(DescribeQuery, null);
             var es = AdapterUtil.ConvertDataTable<EntitySchema>(Table, new EntitySchema());
             return es;
         }
         public List<EntitySchema> databaseTypes()
         {
             string DescribeQuery = @"SELECT TABLE_TYPE FROM [INFORMATION_SCHEMA].[TABLES]  group by TABLE_TYPE";
-            DataTable Table = Connection.TraerDatosSQL(DescribeQuery);
+            DataTable Table = Connection.TraerDatosSQL(DescribeQuery, null);
             var es = AdapterUtil.ConvertDataTable<EntitySchema>(Table, new EntitySchema());
             return es;
         }
@@ -31,14 +31,14 @@ namespace CAPA_DATOS.Generator
         {
             string DescribeQuery = @"SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE  FROM [INFORMATION_SCHEMA].[TABLES]  
                                     where TABLE_SCHEMA = '" + schema + "' and TABLE_TYPE = '" + type + "'";
-            DataTable Table = Connection.TraerDatosSQL(DescribeQuery);
+            DataTable Table = Connection.TraerDatosSQL(DescribeQuery, null);
             var es = AdapterUtil.ConvertDataTable<EntitySchema>(Table, new EntitySchema());
             return es;
         }
         public EntityColumn? describePrimaryKey(string table, string column)
         {
             string DescribeQuery = @"exec sp_columns'" + table + "'";
-            DataTable Table = Connection.TraerDatosSQL(DescribeQuery);
+            DataTable Table = Connection.TraerDatosSQL(DescribeQuery, null);
             var es = AdapterUtil.ConvertDataTable<EntityColumn>(Table, new EntityColumn());
             return es.Find(e => e.COLUMN_NAME == column && e.TYPE_NAME.Contains("identity"));
         }
@@ -46,7 +46,7 @@ namespace CAPA_DATOS.Generator
         {
             string DescribeQuery = @"SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE  from [INFORMATION_SCHEMA].[COLUMNS] 
                                     WHERE [TABLE_NAME] = '" + entityName + "' order by [ORDINAL_POSITION]";
-            DataTable Table = Connection.TraerDatosSQL(DescribeQuery);
+            DataTable Table = Connection.TraerDatosSQL(DescribeQuery, null);
             return AdapterUtil.ConvertDataTable<EntityProps>(Table, new EntityProps());
         }
 
@@ -65,7 +65,7 @@ namespace CAPA_DATOS.Generator
                 INNER JOIN sys.foreign_key_columns AS fc   
                    ON f.object_id = fc.constraint_object_id   
                 WHERE f.parent_object_id = OBJECT_ID('" + entityName + "')";
-            DataTable Table = Connection.TraerDatosSQL(DescribeQuery);
+            DataTable Table = Connection.TraerDatosSQL(DescribeQuery, null);
             return AdapterUtil.ConvertDataTable<OneToOneSchema>(Table, new OneToOneSchema());
         }
         public Boolean isPrimary(string entityName, string column)
@@ -89,7 +89,7 @@ namespace CAPA_DATOS.Generator
                     Constraint_Type = '" + keyType + @"'
                     and Tab.TABLE_NAME = '" + entityName + @"'
                     and Col.Column_Name = '" + column + "';";
-            DataTable Table = Connection.TraerDatosSQL(DescribeQuery);
+            DataTable Table = Connection.TraerDatosSQL(DescribeQuery, null);
             return Table.Rows.Count;
         }
         public int keyInformation(string entityName, string keyType)
@@ -104,18 +104,15 @@ namespace CAPA_DATOS.Generator
                 where
                     Constraint_Type = '" + keyType + @"'
                     and Tab.TABLE_NAME = '" + entityName + "';";
-            DataTable Table = Connection.TraerDatosSQL(DescribeQuery);
+            DataTable Table = Connection.TraerDatosSQL(DescribeQuery, null);
             return Table.Rows.Count;
         }
         public List<OneToManySchema> oneToManyKeys(string entityName, string schema = "dbo")
         {
             string DescribeQuery = $"EXEC sp_fkeys @pktable_name = N'{entityName}' ,@pktable_owner = N'{schema}';";
             //string DescribeQuery = @"exec sp_fkeys '" + entityName + "'";
-            DataTable Table = Connection.TraerDatosSQL(DescribeQuery);
+            DataTable Table = Connection.TraerDatosSQL(DescribeQuery, null);
             return AdapterUtil.ConvertDataTable<OneToManySchema>(Table, new OneToManySchema());
         }
-
-
-
     }
 }

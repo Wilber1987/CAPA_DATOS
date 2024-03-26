@@ -357,7 +357,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
         public T? TakeObject<T>(EntityClass Inst, string CondSQL = "")
         {
             // Construye la consulta SELECT utilizando la instancia proporcionada y, opcionalmente, la condición SQL
-            (string queryString, string queryCount) = QueryBuilder.BuildSelectQuery(Inst, CondSQL, true, true);
+            (string queryString, string queryCount, List<IDbDataParameter>? parameters) = QueryBuilder.BuildSelectQuery(Inst, CondSQL, true, true);
 
             try
             {
@@ -369,7 +369,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
                 }
 
                 // Ejecuta la consulta SQL para obtener los datos
-                DataTable? Table = GDatos?.TraerDatosSQL(queryString);
+                DataTable? Table = GDatos?.TraerDatosSQL(queryString, parameters);
 
                 // Si la tabla contiene filas, convierte la primera fila en un objeto del tipo T
                 if (Table?.Rows.Count != 0)
@@ -415,12 +415,12 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		 de los datos obtenidos en la tabla de datos a una lista de objetos del tipo T. Si ocurre algún error 
 		 durante el proceso, se registra el error y se relanza la excepción para ser manejada en niveles superiores.
 		*/
-        public void TakeListPaginated<T>(EntityClass Inst, string queryString, string queryCount, out List<T> data, out int totalRecordsQuery)
+        public void TakeListPaginated<T>(EntityClass Inst, string queryString, string queryCount, out List<T> data, out int totalRecordsQuery, List<IDbDataParameter>? parameters)
         {
             try
             {
                 // Construye la tabla de datos paginada y obtiene el número total de registros
-                (DataTable Table, int totalRecords) = GDatos.BuildTablePaginated(queryString, queryCount);
+                (DataTable Table, int totalRecords) = GDatos.BuildTablePaginated(queryString, queryCount, parameters);
 
                 // Convierte la tabla de datos en una lista de objetos del tipo T
                 List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
@@ -458,13 +458,12 @@ namespace CAPA_DATOS.BDCore.Abstracts
         public DataTable? BuildTable(EntityClass Inst, ref string CondSQL, bool fullEntity = true, bool isFind = true)
         {
             // Construye la consulta SELECT utilizando la instancia proporcionada y, opcionalmente, la condición SQL
-            (string queryString, string queryCount) = QueryBuilder.BuildSelectQuery(Inst, CondSQL, fullEntity, isFind);
+            (string queryString, string queryCount, List<IDbDataParameter>? parameters) = QueryBuilder.BuildSelectQuery(Inst, CondSQL, fullEntity, isFind);
 
             try
             {
                 // Ejecuta la consulta SQL para obtener los datos y construye la tabla de datos
-                DataTable? Table = GDatos?.TraerDatosSQL(queryString);
-
+                DataTable? Table = GDatos?.TraerDatosSQL(queryString, parameters);
                 // Retorna la tabla de datos
                 return Table;
             }
@@ -476,19 +475,15 @@ namespace CAPA_DATOS.BDCore.Abstracts
                 throw;
             }
         }
-
-
         /*
         * Utlizado para la lectura de los datos
         */
         protected (DataTable, int)? BuildTablePaginated(EntityClass Inst, ref string CondSQL, int pageNum, int pageSize, string orderBy, string orderDir,
             bool fullEntity = true, bool isFind = true)
         {
-            (string queryString, string queryCount) = QueryBuilder.BuildSelectQueryPaginated(Inst, CondSQL, pageNum, pageSize, orderBy, orderDir, fullEntity, isFind);
-            return  GDatos?.BuildTablePaginated(queryString, queryCount);
+            (string queryString, string queryCount, List<IDbDataParameter>? parameters) = QueryBuilder.BuildSelectQueryPaginated(Inst, CondSQL, pageNum, pageSize, orderBy, orderDir, fullEntity, isFind);
+            return  GDatos?.BuildTablePaginated(queryString, queryCount, parameters);
         }
-
-
         #endregion
     }
 

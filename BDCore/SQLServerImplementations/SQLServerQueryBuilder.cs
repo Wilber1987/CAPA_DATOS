@@ -39,10 +39,6 @@ namespace CAPA_DATOS.BDCore.Implementations
 
             // Describir las propiedades de la entidad
             List<EntityProps> entityProps = Inst.DescribeEntity(GetSqlType());
-
-            // Contador de índice para parámetros de consulta
-            int index = 0;
-
             // Lista para almacenar parámetros IDbDataParameter
             List<IDbDataParameter> parameters = new List<IDbDataParameter>();
 
@@ -70,7 +66,7 @@ namespace CAPA_DATOS.BDCore.Implementations
                     {
                         // Si la propiedad está en el conjunto de propiedades de "donde",
                         // se construyen las condiciones de actualización
-                        WhereConstruction(ref Conditions, ref index, AtributeName, AtributeValue);
+                        WhereConstruction(ref Conditions,  AtributeName, AtributeValue, parameters, EntityProp, oProperty);
                     }
                 }
                 else continue;
@@ -94,19 +90,23 @@ namespace CAPA_DATOS.BDCore.Implementations
 
         public override string BuildDeleteQuery(EntityClass Inst)
         {
+            //TODO VALIDAR BIEN
             string TableName = Inst.GetType().Name;
             string CondicionString = "";
             Type _type = Inst.GetType();
             PropertyInfo[] lst = _type.GetProperties();
-            int index = 0;
             List<EntityProps> entityProps = Inst.DescribeEntity(GetSqlType());
+             // Lista para almacenar parámetros IDbDataParameter
+            List<IDbDataParameter> parameters = new List<IDbDataParameter>();
             foreach (PropertyInfo oProperty in lst)
             {
                 string AtributeName = oProperty.Name;
                 var AtributeValue = oProperty.GetValue(Inst);
+                // Buscar la propiedad correspondiente en las propiedades de la entidad
+                var EntityProp = entityProps.Find(e => e.COLUMN_NAME == AtributeName);
                 if (AtributeValue != null)
                 {
-                    WhereConstruction(ref CondicionString, ref index, AtributeName, AtributeValue);
+                    WhereConstruction(ref CondicionString, AtributeName, AtributeValue, parameters, EntityProp, oProperty);
                 }
 
             }
@@ -116,11 +116,11 @@ namespace CAPA_DATOS.BDCore.Implementations
             return strQuery;
         }
        
-       /*Este método BuildSelectQuery se utiliza para construir consultas SELECT basadas en un objeto de clase de entidad, condiciones SQL adicionales y 
+        /*Este método BuildSelectQuery se utiliza para construir consultas SELECT basadas en un objeto de clase de entidad, condiciones SQL adicionales y 
         opciones de filtrado. Este método es crucial para construir consultas SELECT complejas basadas en el estado actual del objeto EntityClass, sus 
         propiedades y filtros adicionales proporcionados. Permite una construcción dinámica de consultas que pueden adaptarse a una variedad de escenarios
-         de recuperación de datos.*/
-        public override (string queryResults, string queryCount) BuildSelectQuery(EntityClass Inst, string CondSQL,
+        de recuperación de datos.*/
+        public override (string queryResults, string queryCount, List<IDbDataParameter>? parameters) BuildSelectQuery(EntityClass Inst, string CondSQL,
           bool fullEntity = true, bool isFind = false, string? orderBy = null, string? orderDir = null)
         {
             // Inicialización de variables para la construcción de la consulta
@@ -133,15 +133,14 @@ namespace CAPA_DATOS.BDCore.Implementations
 
             // Describir las propiedades de la entidad
             List<EntityProps> entityProps = Inst.DescribeEntity(GetSqlType());
-
-            // Índice para parámetros de consulta
-            int index = 0;
-
             // Generar un alias para la tabla
             string tableAlias = tableAliaGenerator();
 
             // Obtener la propiedad "filterData" del objeto de clase de entidad
             var filterData = Inst.GetType().GetProperty("filterData");
+
+            // Lista para almacenar parámetros IDbDataParameter
+            List<IDbDataParameter> parameters = new List<IDbDataParameter>();
 
             // Iterar sobre las propiedades del objeto de clase de entidad
             foreach (PropertyInfo oProperty in lst)
@@ -164,7 +163,7 @@ namespace CAPA_DATOS.BDCore.Implementations
                     var AtributeValue = oProperty.GetValue(Inst);
                     if (AtributeValue != null)
                     {
-                        WhereConstruction(ref CondicionString, ref index, AtributeName, AtributeValue);
+                        WhereConstruction(ref CondicionString, AtributeName, AtributeValue, parameters, EntityProp, oProperty);
                     }
                 }
                 // Si la propiedad es una relación "ManyToOne" y se requiere la entidad completa
@@ -173,7 +172,7 @@ namespace CAPA_DATOS.BDCore.Implementations
                     // Construir subconsulta JSON para la relación "ManyToOne"
                     var manyToOneInstance = Activator.CreateInstance(oProperty.PropertyType);
                     string condition = " " + manyToOne.KeyColumn + " = " + tableAlias + "." + manyToOne.ForeignKeyColumn;
-                    (string subquery, _) = BuildSelectQuery((EntityClass?)manyToOneInstance, condition, false);
+                    (string subquery, _, _) = BuildSelectQuery((EntityClass?)manyToOneInstance, condition, false);
                     Columns = Columns + AtributeName
                         + $" = JSON_QUERY(({subquery} FOR JSON PATH,  ROOT('object')),'$.object[0]'),";
                 }
@@ -187,7 +186,7 @@ namespace CAPA_DATOS.BDCore.Implementations
                     if (pkInfo != null)
                     {
                         string condition = " " + oneToOne.KeyColumn + " = " + tableAlias + "." + oneToOne.ForeignKeyColumn;
-                        (string subquery, _) = BuildSelectQuery((EntityClass?)oneToOneInstance, condition, pimaryKeyPropiertys.Find(p => pkInfo.Identity) != null);
+                        (string subquery, _, _) = BuildSelectQuery((EntityClass?)oneToOneInstance, condition, pimaryKeyPropiertys.Find(p => pkInfo.Identity) != null);
                         Columns = Columns + AtributeName
                             + " = JSON_QUERY(("
                             + subquery
@@ -200,19 +199,19 @@ namespace CAPA_DATOS.BDCore.Implementations
                     // Construir subconsulta para la relación "OneToMany"
                     var oneToManyInstance = Activator.CreateInstance(oProperty.PropertyType.GetGenericArguments()[0]);
                     string condition = " " + oneToMany.ForeignKeyColumn + " = " + tableAlias + "." + oneToMany.KeyColumn;
-                    (string subquery, _) = BuildSelectQuery((EntityClass?)oneToManyInstance, condition, oneToMany.TableName != Inst.GetType().Name);
+                    (string subquery, _, _) = BuildSelectQuery((EntityClass?)oneToManyInstance, condition, oneToMany.TableName != Inst.GetType().Name);
                     Columns = Columns + AtributeName
                         + $" = ({subquery} FOR JSON PATH),";
                 }
-            }
-
+            }            
+            
             // Construir condiciones de consulta basadas en el filtro de datos
             if (filterData != null && filterData.GetValue(Inst) != null)
             {
                 foreach (FilterData filter in (List<FilterData>?)filterData.GetValue(Inst) ?? new List<FilterData>())
                 {
                     // Construir condiciones de consulta basadas en el filtro de datos
-                    string filterCond = SetFilterValueCondition(lst, filter);
+                    string filterCond = SetFilterValueCondition(lst, filter, parameters, entityProps);
                     if (filterCond.Length != 0)
                     {
                         WhereOrAnd(ref CondicionString);
@@ -270,20 +269,17 @@ namespace CAPA_DATOS.BDCore.Implementations
             string queryStringCount = $" SELECT count(*) FROM {entityProps[0].TABLE_SCHEMA}.{Inst?.GetType().Name} as {tableAlias} {CondicionString} {CondSQL};";
 
             // Devolver la consulta principal y la consulta COUNT
-            return (queryString, queryStringCount);
-        }
-        
-      
-        public override (string queryResults, string queryCount) BuildSelectQueryPaginated(EntityClass Inst, string CondSQL, int pageNum, int pageSize, string orderBy, string orderDir, bool fullEntity = true, bool isFind = false)
+            return (queryString, queryStringCount, parameters);
+        }      
+        public override (string queryResults, string queryCount, List<IDbDataParameter>? parameters) BuildSelectQueryPaginated(EntityClass Inst, string CondSQL, int pageNum, int pageSize, string orderBy, string orderDir, bool fullEntity = true, bool isFind = false)
         {
-            (string queryString, string queryCount) = BuildSelectQuery(Inst, CondSQL, fullEntity, isFind, orderBy, orderDir);
+            (string queryString, string queryCount, List<IDbDataParameter>? parameters) = BuildSelectQuery(Inst, CondSQL, fullEntity, isFind, orderBy, orderDir);
             // paginación
             queryString = queryString + " OFFSET " + (pageNum - 1) * pageSize + " ROWS FETCH NEXT " + pageSize + " ROWS ONLY";
-            return (queryString, queryCount);
+            return (queryString, queryCount, parameters);
         }
-
         /*Este método CreateParameter es la implementaciion de su abstracto en sql server y crear un parámetro IDbDataParameter para su uso en consultas
-         SQL con SQL Server.
+        SQL con SQL Server.
         
         este método toma un nombre, un valor, un tipo de datos y una propiedad de una entidad, y crea un parámetro SqlParameter configurado correctamente 
         para su uso en consultas SQL parametrizadas con SQL Server. Si la propiedad tiene un atributo JsonProp, el valor se trata como JSON; de lo contrario,
@@ -319,7 +315,7 @@ namespace CAPA_DATOS.BDCore.Implementations
                     sqlDbType = SqlDbType.DateTime;
                     break;
                 default:
-                    // Lanzar una excepción si el tipo de datos no es compatible
+                    //Lanzar una excepción si el tipo de datos no es compatible
                     throw new ArgumentException($"Tipo de datos no soportado: {dataType}");
             }
 

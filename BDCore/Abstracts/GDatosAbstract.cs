@@ -125,7 +125,7 @@ namespace CAPA_DATOS
 			this.MTConnection = SQLMCon;
 			this.SQLMCon.Open();
 			this.MTransaccion = this.MTConnection.BeginTransaction();
-			LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
+			LoggerServices.AddMessageInfo("-- > BEGIN GLOBAL TRANSACTION <=================");
 		}
 		public void CommitGlobalTransaction()
 		{
@@ -135,7 +135,7 @@ namespace CAPA_DATOS
 				this.MTransaccion?.Commit();
 				this.SQLMCon?.Close();
 				MTConnection = null;
-				LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
+				LoggerServices.AddMessageInfo("-- > COMMIT GLOBAL TRANSACTION <=================");
 			}
 		}
 		public void RollBackGlobalTransaction()
@@ -147,7 +147,7 @@ namespace CAPA_DATOS
 					this.MTransaccion.Rollback();
 					this.SQLMCon.Close();
 				}
-				LoggerServices.AddMessageInfo("-- > ROLLBACK TRANSACTION <=================");
+				LoggerServices.AddMessageInfo("-- > ROLLBACK GLOBAL TRANSACTION <=================");
 			}
 			this.MTConnection = null;
 		}
@@ -216,12 +216,20 @@ namespace CAPA_DATOS
 		 * @param queryString Consulta SQL a ejecutar.
 		 * @return DataTable con los resultados de la consulta.
 		 */
-		public DataTable TraerDatosSQL(string queryString)
+		public DataTable TraerDatosSQL(string queryString, List<IDbDataParameter>? parameters = null)
 		{
 			try
 			{
 				DataSet ObjDS = new DataSet();
 				var Command = ComandoSql(queryString, SQLMCon);
+				// Agregar parámetros si se proporcionan
+				if (parameters != null && parameters.Count > 0)
+				{
+					foreach (var parameter in parameters)
+					{
+						Command.Parameters.Add(parameter);
+					}
+				}
 				Command.Transaction = this.MTransaccion;
 				CrearDataAdapterSql(Command).Fill(ObjDS);
 				return ObjDS.Tables.Count > 0 ? ObjDS.Tables[0].Copy() : new DataTable();
@@ -255,7 +263,7 @@ namespace CAPA_DATOS
 		los datos paginados y el número total de registros. Si ocurre algún error durante el proceso, registra el error y relanza la excepción
 		para ser manejada en niveles superiores.
 		*/
-		public (DataTable, int) BuildTablePaginated(string queryString, string queryCount)
+		public (DataTable, int) BuildTablePaginated(string queryString, string queryCount, List<IDbDataParameter>? parameters)
 		{
 			try
 			{
@@ -263,10 +271,10 @@ namespace CAPA_DATOS
 				LoggerServices.AddMessageInfo(queryString);
 
 				// Ejecuta la consulta SQL para obtener los datos paginados
-				DataTable Table = TraerDatosSQL(queryString);
+				DataTable Table = TraerDatosSQL(queryString, parameters);
 
 				// Ejecuta la consulta SQL para contar el número total de registros
-				int totalRecords = TraerDatosSQL(queryCount).Rows.Count;
+				int totalRecords = TraerDatosSQL(queryCount, parameters).Rows.Count;
 
 				// Retorna una tupla con la tabla de datos paginados y el número total de registros
 				return (Table, totalRecords);

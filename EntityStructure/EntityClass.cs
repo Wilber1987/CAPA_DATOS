@@ -267,11 +267,11 @@ public abstract class EntityClass : TransactionalClass
         // Determina la consulta de descripción de entidad según el tipo de SQL
         string? DescribeEntityQuery = sqlEnumType switch
         {
-            SqlEnumType.SQL_SERVER => SQLServerEntityQuerys.DescribeEntityQuery,
+            SqlEnumType.SQL_SERVER => SQLServerEntityQuerys.DescribeEntityQuery, 
             _ => null
         };
         // Obtiene los datos de la descripción de la entidad utilizando la consulta determinada
-        DataTable? Table = this.MTConnection?.GDatos.TraerDatosSQL(DescribeEntityQuery?.Replace("entityName", this.GetType().Name));
+        DataTable? Table = this.MTConnection?.GDatos.TraerDatosSQL(DescribeEntityQuery?.Replace("entityName", this.GetType().Name), null);
         // Convierte los datos de la descripción a una lista de propiedades de entidad
         List<EntityProps> entityProps = AdapterUtil.ConvertDataTable<EntityProps>(Table, new EntityProps());
         // Si no se encuentra ninguna descripción, lanza una excepción
