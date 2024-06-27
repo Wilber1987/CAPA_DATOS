@@ -1,0 +1,52 @@
+@startuml
+
+abstract class GDatosAbstract {
+    - SQLMCon: IDbConnection
+    - ConexionString: String
+    - MTransaccion: IDbTransaction
+    - globalTransaction: bool
+    - MTConnection: IDbConnection
+    {abstract} + CrearConexion(cadena: string): IDbConnection
+    {abstract} + ComandoSql(comandoSql: string, connection: IDbConnection): IDbCommand
+    {abstract} + CrearDataAdapterSql(comandoSql: string, connection: IDbConnection): IDataAdapter
+    {abstract} + CrearDataAdapterSql(comandoSql: IDbCommand): IDataAdapter
+    {abstract} + ExecuteProcedure(Inst: object, Params: List<object>): object
+    {abstract} + ExecuteProcedureWithSQL(Inst: object, Params: List<object>): DataTable
+    + TestConnection(): bool
+    + ExcuteSqlQuery(strQuery: string, parameters: List<IDbDataParameter>): object
+    + ReStartData(ex: Exception): void
+    + TraerDatosSQL(queryString: string): DataTable
+    + TraerDatosSQL(Command: IDbCommand): DataTable
+    + BeginTransaction(): void
+    + CommitTransaction(): void
+    + RollBackTransaction(): void
+    + BeginGlobalTransaction(): void
+    + CommitGlobalTransaction(): void
+    + RollBackGlobalTransaction(): void
+}
+
+class WDataMapper {
+    +GDatosAbstract GDatos
+    +BDQueryBuilderAbstract QueryBuilder
+    +WDataMapper(GDatosAbstract, BDQueryBuilderAbstract)
+    +object? InsertObject(EntityClass)
+    -void SetManyToOneProperties(EntityClass, List<PropertyInfo>)
+    -void InsertRelationatedObject(object, EntityClass, PropertyInfo)
+    +object? UpdateObject(EntityClass, string[])
+    +object? UpdateObject(EntityClass, string)
+    +object? Delete(EntityClass)
+    +List<T> TakeList<T>(EntityClass, bool, string)
+    +T? TakeObject<T>(EntityClass, string)
+    +void TakeListPaginated<T>(EntityClass, string, string, out List<T>, out int, List<IDbDataParameter>?)
+    +List<T> TakeListWithProcedure<T>(StoreProcedureClass, List<Object>)
+    -DataTable? BuildTable(EntityClass, ref string, bool, bool)
+    -protected (DataTable, int)? BuildTablePaginated(EntityClass, ref string, int, int, string, string, bool, bool)
+}
+
+enum SqlEnumType {
+    SQL_SERVER
+    POSTGRES_SQL
+    MYSQL
+}
+WDataMapper o-- GDatosAbstract
+@enduml

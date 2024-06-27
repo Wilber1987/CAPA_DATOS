@@ -1,0 +1,100 @@
+@startuml
+
+abstract class EntityClass {
+    -filterData: List<FilterData>?
+    -ordeData: List<OrdeData>?
+    {abstract} + Get<T>(condition: string = ""): List<T>
+    {abstract} + GetAll<T>(): List<T>
+    {abstract} + Where<T>(where_condition: FilterData[]): List<T>
+    {abstract} + Get_WhereIN<T>(Field: string, conditions: string?[]): List<T>
+    {abstract} + Get_WhereNotIN<T>(Field: string, conditions: string[]): List<T>
+    {abstract} + Find<T>(where_condition: FilterData[]?): T?
+    {abstract} + Exists<T>(): Boolean
+    {abstract} + SimpleGet<T>(): List<T>
+    {static} + EndpointMethod<T>(): List<T>
+    - BuildArrayIN(conditions: string?[]): string
+    + Save(): object?
+    + Save2(): object?
+    + Update(): object?
+    + Update(): bool
+    + Update(Id: string): bool
+    + Update(Id: string[]): bool
+    + Delete(): bool
+    + DescribeEntity(sqlEnumType: SqlEnumType): List<EntityProps>
+}
+
+abstract class StoreProcedureClass {
+    - Parameters: List<Object>?
+    {abstract} + Execute(): ResponseService
+    {abstract} + Get<T>(): List<T>
+}
+
+abstract class TransactionalClass {
+    - Conection: WDataMapper?
+    {abstract} + BeginGlobalTransaction(): void
+    {abstract} + CommitGlobalTransaction(): void
+    {abstract} + RollBackGlobalTransaction(): void
+}
+
+class FilterData {
+  -string? PropName
+  -string? FilterType
+  -List<FilterData>? Filters
+  -List<String?>? Values
+  +static In(string?, object?[]): FilterData
+  +static NotIn(string?, object?[]): FilterData
+  +static Equal(string?, String?): FilterData
+  +static Equal(string?, int?): FilterData
+  +static Equal(string?, object?): FilterData
+  +static Greater(string?, DateTime?): FilterData
+  +static Greater(string?, int?): FilterData
+  +static Greater(string?, object?): FilterData
+  +static GreaterEqual(string?, DateTime?): FilterData
+  +static GreaterEqual(string?, int?): FilterData
+  +static GreaterEqual(string?, object?): FilterData
+  +static Less(string?, DateTime?): FilterData
+  +static Less(string?, int?): FilterData
+  +static Less(string?, object?): FilterData
+  +static LessEqual(string?, DateTime?): FilterData
+  +static LessEqual(string?, int?): FilterData
+  +static LessEqual(string?, object?): FilterData
+  +static Distinc(string?, String?): FilterData
+  +static Distinc(string?, int?): FilterData
+  +static Distinc(string?, object?): FilterData
+  +static Like(string?, String?): FilterData
+  +static Between(string?, DateTime, DateTime): FilterData
+  +static Between(string?, int, int): FilterData
+  +static Between(string?, double, double): FilterData
+  +static Or(FilterData[]): FilterData
+  +static And(FilterData[]): FilterData
+  +static OrderByAsc(string?): FilterData
+  +static OrderByDesc(string?): FilterData
+  +static Paginate(int, int): FilterData
+  +static Limit(int): FilterData
+}
+
+class OrdeData {
+  -string? PropName
+  -string? OrderType
+  +OrdeData()
+  +static Asc(string?): OrdeData
+  +static Desc(string?): OrdeData
+}
+
+class WDataMapper {
+    - GDatos
+}
+
+class ResponseService {
+    - status: int
+    - message: string
+}
+
+
+EntityClass --|> TransactionalClass
+StoreProcedureClass --|> TransactionalClass
+EntityClass o-- FilterData
+EntityClass o-- OrdeData
+TransactionalClass o-- WDataMapper
+
+@enduml
