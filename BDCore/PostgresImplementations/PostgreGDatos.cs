@@ -8,22 +8,7 @@ namespace CAPA_DATOS.PostgresImplementations
         public PostgreGDatos(string ConexionString)
         {
             this.ConexionString = ConexionString;
-        }
-        /**
-         * Propiedad que devuelve la conexión a la base de datos.
-         * Si existe una conexión previa (MTConnection), la devuelve; de lo contrario, crea una nueva conexión.
-         */
-        protected override IDbConnection SQLMCon
-        {
-            get
-            {
-                if (this.MTConnection != null)
-                {
-                    return this.MTConnection;
-                }
-                return CrearConexion(ConexionString);
-            }
-        }
+        }       
 
         /**
          * Ejecuta un procedimiento almacenado en la base de datos.

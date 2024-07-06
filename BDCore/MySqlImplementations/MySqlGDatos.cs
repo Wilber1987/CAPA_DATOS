@@ -10,19 +10,6 @@ namespace CAPA_DATOS.MySqlImplementations
             this.ConexionString = ConexionString;
         }
         
-        // Propiedad que devuelve la conexión a la base de datos.
-        protected override IDbConnection SQLMCon
-        {
-            get
-            {
-                if (this.MTConnection != null)
-                {
-                    return this.MTConnection;
-                }
-                return CrearConexion(ConexionString);
-            }
-        }
-
         // Ejecuta un procedimiento almacenado en la base de datos.
         public override object ExecuteProcedure(object Inst, List<object> Params)
         {

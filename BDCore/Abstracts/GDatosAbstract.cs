@@ -13,7 +13,22 @@ namespace CAPA_DATOS
 		/**
 		Esta propiedad abstracta define una conexión a la base de datos. La clase derivada debe implementar esta propiedad para proporcionar una instancia de IDbConnection (por ejemplo, SqlConnection para SQL Server o MySqlConnection para MySQL).
 		*/
-		protected abstract IDbConnection SQLMCon { get; }
+		/**
+		 * Propiedad que devuelve la conexión a la base de datos.
+		 * Si existe una conexión previa (MTConnection), la devuelve; de lo contrario, crea una nueva conexión.
+		 */
+		protected IDbConnection SQLMCon
+		{
+			get
+			{
+				if (this.MTConnection != null && this.MTConnection.ConnectionString?.Length > 0)
+				{
+					return this.MTConnection;
+				}
+				this.MTConnection = CrearConexion(ConexionString);
+				return this.MTConnection;
+			}
+		}
 		/**
 		Esta variable almacena la cadena de conexión a la base de datos. Debe ser inicializada por la clase derivada antes de usarla para establecer la conexión.
 		*/
@@ -102,8 +117,7 @@ namespace CAPA_DATOS
 				{
 					this.MTransaccion?.Commit();
 				}
-				SQLMCon.Close();
-				this.MTransaccion = null;
+				ReStartData();
 				//MTConnection = null;
 			}
 		}
@@ -120,8 +134,7 @@ namespace CAPA_DATOS
 				{
 					this.MTransaccion.Rollback();
 				}
-				SQLMCon.Close();
-				this.MTransaccion = null;
+				ReStartData();
 			}
 
 		}
@@ -140,8 +153,7 @@ namespace CAPA_DATOS
 			{
 				this.globalTransaction = false;
 				this.MTransaccion?.Commit();
-				this.SQLMCon?.Close();
-				MTConnection = null;
+				ReStartData();
 				LoggerServices.AddMessageInfo("-- > COMMIT GLOBAL TRANSACTION <=================");
 			}
 		}
@@ -156,7 +168,7 @@ namespace CAPA_DATOS
 				}
 				LoggerServices.AddMessageInfo("-- > ROLLBACK GLOBAL TRANSACTION <=================");
 			}
-			this.MTConnection = null;
+			ReStartData();
 		}
 
 		/**
@@ -171,29 +183,44 @@ namespace CAPA_DATOS
 			/*try
 			{*/
 			return ExecuteWithRetry(() =>
-			{
-				using (var command = ComandoSql(strQuery, SQLMCon))
-				{
-					command.Transaction = this.MTransaccion;
+            {
+                var command = ComandoSql(strQuery, SQLMCon);
+                command.Transaction = this.MTransaccion;
+                SetParametersInCommand(parameters, command);
+                var scalar = command.ExecuteScalar();
+                if (scalar == DBNull.Value)
+                {
+                    return true;
+                }
+                else
+                {
+                    return Convert.ToInt32(scalar);
+                }
+            });
+		}
 
-					if (parameters != null)
-					{
-						foreach (var param in parameters)
-						{
-							command.Parameters.Add(param);
-						}
-					}
-					var scalar = command.ExecuteScalar();
-					if (scalar == DBNull.Value)
-					{
-						return true;
-					}
-					else
-					{
-						return Convert.ToInt32(scalar);
-					}
+        private void SetParametersInCommand(List<IDbDataParameter>? parameters, IDbCommand command)
+        {
+            if (parameters != null)
+            {
+                foreach (var param in parameters)
+                {
+                    command.Parameters.Add(CloneParameter(param));
+                }
+            }
+        }
+
+        private IDbDataParameter? CloneParameter(IDbDataParameter originalParam)
+		{
+			IDbDataParameter? newParam = (IDbDataParameter?)Activator.CreateInstance(originalParam.GetType());
+			foreach (var prop in originalParam.GetType().GetProperties())
+			{
+				if (prop.CanWrite)
+				{
+					prop.SetValue(newParam, prop.GetValue(originalParam));
 				}
-			});
+			}
+			return newParam;
 		}
 		// Otros métodos y propiedades existentes
 
@@ -208,18 +235,19 @@ namespace CAPA_DATOS
 				}
 				catch (Exception ex)
 				{
-					this.ReStartData(ex);
 					if (retries >= maxRetries)
 					{
 						// Log the error and rethrow the exception
 						LoggerServices.AddMessageError("ERROR: Max retries reached. Operation failed.", ex);
+						this.ReStartData(ex);
 						throw;
 					}
 					// Log the retry attempt
 					LoggerServices.AddMessageInfo($"Retry attempt {retries + 1} after error: {ex.Message}");
 					retries++;
 					// Optionally, add a delay before retrying
-					Task.Delay(1000).Wait();
+					Task.Delay(100).Wait();
+					//this.ReStartData(ex);
 				}
 			}
 		}
@@ -229,6 +257,11 @@ namespace CAPA_DATOS
 		 * @param ex Excepción que provocó la reinicialización.
 		 */
 		public void ReStartData(Exception ex)
+		{
+			ReStartData();
+			LoggerServices.AddMessageError("Transaction failed and connection restarted.", ex);
+		}
+		public void ReStartData()
 		{
 			if (this.MTransaccion?.Connection?.State == System.Data.ConnectionState.Open)
 			{
@@ -241,7 +274,6 @@ namespace CAPA_DATOS
 			globalTransaction = false;
 			this.MTConnection = null;
 			this.MTransaccion = null;
-			LoggerServices.AddMessageError("Transaction failed and connection restarted.", ex);
 		}
 
 		/**
@@ -254,27 +286,62 @@ namespace CAPA_DATOS
 			return (DataTable)ExecuteWithRetry(() =>
 			{
 				DataSet ObjDS = new DataSet();
-				using (var command = ComandoSql(queryString, SQLMCon))
-				{
-					command.Transaction = this.MTransaccion;
-
-					if (parameters != null)
-					{
-						foreach (var param in parameters)
-						{
-							command.Parameters.Add(param);
-						}
-					}
-					CrearDataAdapterSql(command).Fill(ObjDS);
-					return ObjDS.Tables.Count > 0 ? ObjDS.Tables[0].Copy() : new DataTable();
-				}
+				//VerifyConec();						
+				//SQLMCon.Open();
+				IDbConnection connection = this.MTransaccion != null ? SQLMCon : CrearConexion(ConexionString);
+				var command = ComandoSql(queryString, connection);
+				command.Transaction = this.MTransaccion;
+				SetParametersInCommand(parameters, command);
+				IDataAdapter dataAdapter = CrearDataAdapterSql(command);
+				dataAdapter.Fill(ObjDS);
+				return ObjDS.Tables.Count > 0 ? ObjDS.Tables[0].Copy() : new DataTable();
 			});
 		}
+
+		private void VerifyConec()
+		{
+			// Verifica si la conexión está abierta
+			switch (SQLMCon.State)
+			{
+				case ConnectionState.Closed:
+					this.ReStartData(new Exception("reestablecimiento"));
+					SQLMCon.Open();
+					break;
+				case ConnectionState.Open:
+					// La conexión ya está abierta, no hay necesidad de hacer nada
+					break;
+				case ConnectionState.Connecting:
+				case ConnectionState.Executing:
+				case ConnectionState.Fetching:
+					// Esperar a que la conexión se establezca
+					while (SQLMCon.State == ConnectionState.Connecting
+					|| SQLMCon.State == ConnectionState.Fetching
+					|| SQLMCon.State == ConnectionState.Executing)
+					{
+						Thread.Sleep(100); // Espera breve antes de volver a comprobar
+					}
+					if (SQLMCon.State == ConnectionState.Closed || SQLMCon.State == ConnectionState.Broken)
+					{
+						//SQLMCon.Open();
+					}
+					break;
+					// Esperar a que la operación actual se complete
+					throw new InvalidOperationException("La conexión está ejecutando una operación. Intente nuevamente más tarde.");
+				case ConnectionState.Broken:
+					// Cerrar la conexión rota y reabrirla
+					SQLMCon.Close();
+					SQLMCon.Open();
+					break;
+				default:
+					throw new InvalidOperationException("Estado de conexión desconocido.");
+			}
+		}
+
 		/**
-		 * Ejecuta una consulta SQL y devuelve los resultados en un DataTable.
-		 * @param Command Comando SQL a ejecutar.
-		 * @return DataTable con los resultados de la consulta.
-		 */
+		* Ejecuta una consulta SQL y devuelve los resultados en un DataTable.
+		* @param Command Comando SQL a ejecutar.
+		* @return DataTable con los resultados de la consulta.
+		*/
 		public DataTable TraerDatosSQL(IDbCommand Command)
 		{
 			return (DataTable)ExecuteWithRetry(() =>

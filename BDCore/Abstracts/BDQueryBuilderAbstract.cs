@@ -82,7 +82,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 					// IDbDataParameter correspondiente
 					if ((from O in WhereProps where O == AtributeName select O).ToList().Count == 0)
 					{
-						string paramName = "@" + AtributeName;
+						string paramName = "@" + AtributeName + AliasGenerator();
 						Values = Values + $"{AtributeName} = {paramName},";
 						IDbDataParameter parameter = CreateParameter(paramName, AtributeValue, EntityProp.DATA_TYPE, oProperty);
 						parameters.Add(parameter);
@@ -153,7 +153,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 				// Verifica si la propiedad y su valor no son nulos y existen en la descripción de la entidad
 				if (AtributeValue != null && EntityProp != null)
 				{
-					string paramName = "@" + AtributeName;
+					string paramName = "@" + AtributeName + AliasGenerator();
 					ColumnNames += AtributeName + ",";
 					Values += paramName + ",";
 
@@ -218,7 +218,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 
 		protected abstract SqlEnumType GetSqlType();
 
-		protected string tableAliaGenerator()
+		protected string AliasGenerator()
 		{
 			char ta = (char)(((int)'A') + new Random().Next(26));
 			char ta2 = (char)(((int)'A') + new Random().Next(26));
@@ -238,7 +238,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 			if (AtributeValue != null)
 			{
 				WhereOrAnd(ref CondicionString);
-				string paramName = "@" + AtributeName;
+				string paramName = "@" + AtributeName + AliasGenerator();
 				CondicionString = CondicionString + $"{AtributeName} = {paramName} ";
 				IDbDataParameter parameter = CreateParameter(paramName, AtributeValue, entityProp.DATA_TYPE, propertyInfo);
 				parameters.Add(parameter);

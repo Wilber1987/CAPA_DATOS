@@ -35,7 +35,7 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 			// Describir las propiedades de la entidad
 			List<EntityProps> entityProps = Inst.DescribeEntity(GetSqlType());
 			// Generar un alias para la tabla
-			string tableAlias = tableAliaGenerator();
+			string tableAlias = AliasGenerator();
 			// Lista para almacenar parámetros IDbDataParameter
 			List<IDbDataParameter> parameters = new List<IDbDataParameter>();
 

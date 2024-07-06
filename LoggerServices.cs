@@ -23,7 +23,7 @@ namespace CAPA_DATOS
 		}
 		public static void AddMessageError(string message, Exception ex)
 		{
-			Console.WriteLine(message, ex);
+			Console.WriteLine(message, ex.Message);
 			try
 			{
 				new Log
