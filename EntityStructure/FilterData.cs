@@ -10,6 +10,10 @@ namespace CAPA_DATOS
 		{
 			return new FilterData { PropName = propName, FilterType = "in", Values = values.Select(v => v?.ToString()).ToList() };
 		}
+		public static FilterData In(string? propName, params int?[] values)
+		{
+			return new FilterData { PropName = propName, FilterType = "in", Values = values.Select(v => v.GetValueOrDefault().ToString()).ToList() };
+		}
 		public static FilterData NotIn(string? propName, params object?[] values)
 		{
 			return new FilterData { PropName = propName, FilterType = "not in", Values = values.Select(v => v?.ToString()).ToList() };
