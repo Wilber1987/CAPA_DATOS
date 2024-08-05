@@ -1,10 +1,4 @@
-﻿using System.Collections;
-using System.Data;
-using System.Data.SqlClient;
-using System.Reflection;
-using System.Transactions;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using System.Data;
 
 namespace CAPA_DATOS
 {

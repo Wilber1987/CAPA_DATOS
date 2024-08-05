@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace CAPA_DATOS.BDCore.Abstracts
 {
@@ -16,11 +10,6 @@ namespace CAPA_DATOS.BDCore.Abstracts
 
 		public abstract (string queryResults, string queryCount, List<IDbDataParameter>? parameters) BuildSelectQueryPaginated(EntityClass Inst, string CondSQL,
 			int pageNum, int pageSize, string orderBy, string orderDir, bool fullEntity = true, bool isFind = true);
-
-		//public abstract (string?, List<IDbDataParameter>?) BuildUpdateQueryByObject(EntityClass Inst, string IdObject);
-		//public abstract (string?, List<IDbDataParameter>?) BuildUpdateQueryByObject(EntityClass Inst, string[] WhereProps);
-		//public abstract  (string?, List<IDbDataParameter>?) BuildDeleteQuery(EntityClass Inst);
-
 
 		#region  QUERYBUILDER IMPLEMANTATIONS     
 		/*Este método abstracto CreateParameter se utiliza para crear un parámetro IDbDataParameter, que representa un parámetro 
