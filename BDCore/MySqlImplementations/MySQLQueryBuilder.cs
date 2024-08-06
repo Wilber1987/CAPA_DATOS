@@ -59,17 +59,20 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 				// Si la propiedad es una relación "ManyToOne" y se requiere la entidad completa
 				else if (manyToOne != null && fullEntity)
 				{
-					Columns = IncludeManyToOneObjectInQuery(Inst, Columns, tableAlias, oProperty, AtributeName, manyToOne);
+					//TODO REIMPLEMENTAR
+					//Columns = IncludeManyToOneObjectInQuery(Inst, Columns, tableAlias, oProperty, AtributeName, manyToOne);
 				}
 				// Si la propiedad es una relación "OneToOne" y se requiere la entidad completa
 				else if (oneToOne != null && fullEntity)
 				{
-					Columns = IncludeOneToOneObjectInQuery(Inst, Columns, lst, tableAlias, oProperty, AtributeName, oneToOne);
+					//TODO REIMPLEMENTAR
+					//Columns = IncludeOneToOneObjectInQuery(Inst, Columns, lst, tableAlias, oProperty, AtributeName, oneToOne);
 				}
 				// Si la propiedad es una relación "OneToMany" y se requiere la entidad completa
 				else if (oneToMany != null && fullEntity)
 				{
-					Columns = IncludeOneToManyObjectInQuery(Inst, Columns, tableAlias, oProperty, AtributeName, oneToMany);
+					//TODO REIMPLEMENTAR
+					//Columns = IncludeOneToManyObjectInQuery(Inst, Columns, tableAlias, oProperty, AtributeName, oneToMany);
 				}
 			}
 			//colocar filttros al query

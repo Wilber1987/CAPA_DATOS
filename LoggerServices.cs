@@ -32,7 +32,7 @@ namespace CAPA_DATOS
 					body = RemoveSpecialCharactersForSql($"Tipo: {ex.GetType().Name},/n/n Mensaje: {ex.Message},/n/n Pila de llamadas:/n/n {ex.StackTrace}"),
 					message = RemoveSpecialCharactersForSql(message),
 					LogType = LogType.ERROR.ToString()
-				};
+				}.Save();
 			}
 			catch (System.Exception)
 			{}			
