@@ -1,0 +1,51 @@
+@startuml Ejecucion de consulta
+participant "Cliente" as C
+participant "GDatosAbstract" as G
+participant "IDbCommand" as Cmd
+participant "IDbConnection" as Con
+participant "IDbDataParameter" as Param
+participant "Task" as T
+activate G
+C -> G : ExcuteSqlQuery(strQuery, parameters)
+G -> G : ExecuteWithRetry(operation)
+
+alt Exito en la primera ejecución
+    G -> G : operation()
+    G -> G : ComandoSql(strQuery, SQLMCon)
+    G -> Cmd : Crear comando
+    Cmd --> G : IDbCommand
+
+    G -> G : SetParametersInCommand(parameters, command)
+
+
+    loop for each param in parameters ?? []
+        G -> G : CloneParameter(param)
+        Param --> G : IDbDataParameter
+        G -> Cmd : Añadir parámetro
+    end
+
+
+    G -> Cmd : ExecuteScalar()
+    Cmd --> G : scalar
+
+    alt scalar == DBNull.Value
+        G --> C : true
+    else
+        G --> C : Convert.ToInt32(scalar)
+    end
+    deactivate  G
+
+else Fallo y reintento
+    activate G
+    alt retries < maxRetries
+        G -> G : operation()
+
+    else retries >= maxRetries
+        G -> G : ReStartData(ex)
+
+        G --> C : throw ex
+    end
+    deactivate G
+end
+
+@enduml

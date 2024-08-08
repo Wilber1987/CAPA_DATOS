@@ -1,0 +1,38 @@
+@startuml
+namespace CAPA_DATOS {
+    abstract class GDatosAbstract {
+        - IDbConnection SQLMCon { get; }
+        - String? ConexionString
+        - IDbTransaction? MTransaccion
+        - bool globalTransaction
+        - IDbConnection? MTConnection
+
+        ' Métodos abstractos
+        {abstract} + IDbConnection CrearConexion(string cadena)
+        {abstract} + IDbCommand ComandoSql(string comandoSql, IDbConnection connection)
+        {abstract} + IDataAdapter CrearDataAdapterSql(string comandoSql, IDbConnection connection)
+        {abstract} + IDataAdapter CrearDataAdapterSql(IDbCommand comandoSql)
+        {abstract} + object ExecuteProcedure(object Inst, List<object> Params)
+        {abstract} + DataTable ExecuteProcedureWithSQL(object Inst, List<object> Params)
+
+        ' Métodos ADO.NET
+        + bool TestConnection()
+        + void BeginTransaction()
+        + void CommitTransaction()
+        + void RollBackTransaction()
+        + void BeginGlobalTransaction()
+        + void CommitGlobalTransaction()
+        + void RollBackGlobalTransaction()
+        + object? ExcuteSqlQuery(string? strQuery, List<IDbDataParameter>? parameters = null)
+        - void SetParametersInCommand(List<IDbDataParameter>? parameters, IDbCommand command)
+        - IDbDataParameter? CloneParameter(IDbDataParameter originalParam)
+        - object ExecuteWithRetry(Func<object> operation, int maxRetries = 10)
+        + void ReStartData(Exception ex)
+        + void ReStartData()
+        + DataTable TraerDatosSQL(string queryString, List<IDbDataParameter>? parameters = null)
+        - void VerifyConec()
+        + DataTable TraerDatosSQL(IDbCommand Command)
+        + (DataTable, int) BuildTablePaginated(string queryString, string queryCount, List<IDbDataParameter>? parameters)
+    }
+}
+@enduml

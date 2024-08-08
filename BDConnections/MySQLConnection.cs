@@ -29,8 +29,7 @@ public class MySQLConnection
     {
         string userSQLConexion = $"Server={MySQLServer};Port={Port};User ID={SGBD_USER};Password={SWGBD_PASSWORD};Database={BDNAME};";
         SQLM = new WDataMapper(new MySqlGDatos(userSQLConexion), new MySQLQueryBuilder());
-        if (SQLM.GDatos.TestConnection()) {
-            Connections.Default = SQLM;
+        if (SQLM.GDatos.TestConnection()) {          
             return true;
         } 
         else

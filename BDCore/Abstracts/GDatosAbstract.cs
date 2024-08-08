@@ -1,10 +1,4 @@
-﻿using System.Collections;
-using System.Data;
-using System.Data.SqlClient;
-using System.Reflection;
-using System.Transactions;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using System.Data;
 
 namespace CAPA_DATOS
 {
@@ -224,7 +218,7 @@ namespace CAPA_DATOS
 		}
 		// Otros métodos y propiedades existentes
 
-		protected object ExecuteWithRetry(Func<object> operation, int maxRetries = 10)
+		protected object ExecuteWithRetry(Func<object> operation, int maxRetries = 60)
 		{
 			int retries = 0;
 			while (true)
@@ -246,7 +240,7 @@ namespace CAPA_DATOS
 					LoggerServices.AddMessageInfo($"Retry attempt {retries + 1} after error: {ex.Message}");
 					retries++;
 					// Optionally, add a delay before retrying
-					Task.Delay(100).Wait();
+					Task.Delay(500).Wait();
 					//this.ReStartData(ex);
 				}
 			}
