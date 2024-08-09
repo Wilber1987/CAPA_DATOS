@@ -25,7 +25,6 @@ namespace CAPA_DATOS.BDCore.Abstracts
         public object? InsertObject(EntityClass entity)
         {
             // Agrega un mensaje de registro indicando que se está insertando un objeto en la base de datos
-            LoggerServices.AddMessageInfo("--> InsertObject(" + entity.GetType().Name + ")");
 
             // Obtiene las propiedades del objeto utilizando reflexión
             List<PropertyInfo> entityProps = entity.GetType().GetProperties().ToList();
@@ -192,8 +191,6 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		el objeto en la base de datos; de lo contrario, lo inserta como un nuevo registro.*/
         private void InsertRelationatedObject(object foreignKeyValue, EntityClass entity, PropertyInfo foreignKeyColumn)
         {
-            // Agrega un mensaje de registro indicando que se está insertando un objeto relacionado
-            LoggerServices.AddMessageInfo("--> InsertRelationatedObject(" + entity.GetType().Name + "): ");
 
             // Establece el valor de la clave externa en el objeto relacionado
             foreignKeyColumn.SetValue(entity, foreignKeyValue);
@@ -223,10 +220,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		Finalmente, itera sobre las propiedades OneToMany para manejar las relaciones y actualiza o inserta los objetos
 		relacionados según sea necesario.*/
         public object? UpdateObject(EntityClass entity, string[] IdObject)
-        {
-            // Agrega un mensaje de registro indicando que se está actualizando un objeto
-            LoggerServices.AddMessageInfo("--> UpdateObject(EntityClass Inst, string[] IdObject)");
-
+        {            
             // Obtiene las propiedades del objeto utilizando reflexión
             List<PropertyInfo> entityProps = entity.GetType().GetProperties().ToList();
 
@@ -290,9 +284,6 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		y la ejecuta, retornando el resultado de la ejecución de la consulta.*/
         public object? UpdateObject(EntityClass Inst, string IdObject)
         {
-            // Agrega un mensaje de registro indicando que se está actualizando un objeto
-            LoggerServices.AddMessageInfo("--> UpdateObject(EntityClass Inst, string IdObject)");
-
             // Verifica si el valor de la propiedad de identificación es nulo
             if (Inst.GetType().GetProperty(IdObject)?.GetValue(Inst) == null)
             {
@@ -310,7 +301,6 @@ namespace CAPA_DATOS.BDCore.Abstracts
         }
         public object? Delete(EntityClass Inst)
         {
-            LoggerServices.AddMessageInfo("-- > Delete(EntityClass Inst)");
             (string? strQuery, List<IDbDataParameter>? parameters) = QueryBuilder.BuildDeleteQuery(Inst);
             return GDatos?.ExcuteSqlQuery(strQuery, parameters);
         }

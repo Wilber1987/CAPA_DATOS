@@ -90,7 +90,6 @@ namespace CAPA_DATOS
 				return;
 			}
 			//this.MTConnection = null;
-			LoggerServices.AddMessageInfo("-- > BEGIN TRANSACTION <=================");
 			//MTConnection = SQLMCon;
 			if (SQLMCon.State == ConnectionState.Closed)
 			{
@@ -106,7 +105,6 @@ namespace CAPA_DATOS
 			}
 			else if (this.MTransaccion != null && this.MTransaccion.Connection != null)
 			{
-				LoggerServices.AddMessageInfo("-- > COMMIT TRANSACTION <=================");
 				if (this.MTransaccion?.Connection?.State == ConnectionState.Open)
 				{
 					this.MTransaccion?.Commit();
@@ -123,7 +121,6 @@ namespace CAPA_DATOS
 			}
 			if (this.MTransaccion != null && this.MTransaccion.Connection != null)
 			{
-				LoggerServices.AddMessageInfo("-- > ROLLBACK TRANSACTION <=================");
 				if (this.MTransaccion.Connection.State == ConnectionState.Open)
 				{
 					this.MTransaccion.Rollback();
@@ -139,7 +136,6 @@ namespace CAPA_DATOS
 			this.MTConnection = SQLMCon;
 			this.SQLMCon.Open();
 			this.MTransaccion = this.MTConnection.BeginTransaction();
-			LoggerServices.AddMessageInfo("-- > BEGIN GLOBAL TRANSACTION <=================");
 		}
 		public void CommitGlobalTransaction()
 		{
@@ -148,7 +144,6 @@ namespace CAPA_DATOS
 				this.globalTransaction = false;
 				this.MTransaccion?.Commit();
 				ReStartData();
-				LoggerServices.AddMessageInfo("-- > COMMIT GLOBAL TRANSACTION <=================");
 			}
 		}
 		public void RollBackGlobalTransaction()
@@ -160,7 +155,6 @@ namespace CAPA_DATOS
 					this.MTransaccion.Rollback();
 					this.SQLMCon.Close();
 				}
-				LoggerServices.AddMessageInfo("-- > ROLLBACK GLOBAL TRANSACTION <=================");
 			}
 			ReStartData();
 		}
@@ -237,7 +231,6 @@ namespace CAPA_DATOS
 						throw;
 					}
 					// Log the retry attempt
-					LoggerServices.AddMessageInfo($"Retry attempt {retries + 1} after error: {ex.Message}");
 					retries++;
 					// Optionally, add a delay before retrying
 					Task.Delay(500).Wait();
@@ -362,7 +355,6 @@ namespace CAPA_DATOS
 			try
 			{
 				// Registra un mensaje de información con la consulta SQL de los datos paginados
-				LoggerServices.AddMessageInfo(queryString);
 
 				// Ejecuta la consulta SQL para obtener los datos paginados
 				DataTable Table = TraerDatosSQL(queryString, parameters);

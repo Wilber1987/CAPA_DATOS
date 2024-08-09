@@ -10,16 +10,33 @@ namespace CAPA_DATOS
 		public static void AddMessageInfo(string message)
 		{
 			Console.WriteLine(message);
+			try
+			{
+				new Log
+				{
+					Fecha = DateTime.Now,
+					message = message,
+					LogType = LogType.INFO.ToString()
+				}.Save();
+			}
+			catch (System.Exception)
+			{ }
 		}
-		public static void AddMessageInfoLog(string message)
+		public static void AddAction(string message, int Id_User)
 		{
 			Console.WriteLine(message);
-			new Log
+			try
 			{
-				Fecha = DateTime.Now,
-				message = message,
-				LogType = LogType.INFO.ToString()
-			};
+				new Log
+				{
+					Fecha = DateTime.Now,
+					message = message,
+					Id_User = Id_User,
+					LogType = LogType.ACTION.ToString()
+				}.Save();
+			}
+			catch (System.Exception)
+			{ }
 		}
 		public static void AddMessageError(string message, Exception ex)
 		{
@@ -29,13 +46,14 @@ namespace CAPA_DATOS
 				new Log
 				{
 					Fecha = DateTime.Now,
-					body = RemoveSpecialCharactersForSql($"Tipo: {ex.GetType().Name},/n/n Mensaje: {ex.Message},/n/n Pila de llamadas:/n/n {ex.StackTrace}"),
+					body = RemoveSpecialCharactersForSql(
+						$"Tipo: {ex.GetType().Name},/n/n Mensaje: {ex.Message},/n/n Pila de llamadas:/n/n {ex.StackTrace}"),
 					message = RemoveSpecialCharactersForSql(message),
 					LogType = LogType.ERROR.ToString()
 				}.Save();
 			}
 			catch (System.Exception)
-			{}			
+			{ }
 		}
 		static string RemoveSpecialCharactersForSql(string input)
 		{
@@ -61,19 +79,23 @@ namespace CAPA_DATOS
 		}
 
 	}
+	public class Logger : LoggerServices {
+		
+	}
 
 	public class Log : EntityClass
 	{
 		[PrimaryKey(Identity = true)]
 		public int? Id_Log { get; set; }
+		public int? Id_User { get; set; }
 		public DateTime? Fecha { get; set; }
 		public string? message { get; set; }
 		public string? LogType { get; set; }
-		public  string? body { get; set; }
+		public string? body { get; set; }
 	}
 
 	public enum LogType
 	{
-		ERROR, INFO
+		ERROR, INFO, ACTION
 	}
 }

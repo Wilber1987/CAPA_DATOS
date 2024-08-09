@@ -12,6 +12,8 @@ CREATE TABLE dbo.Log (
 	body nvarchar(MAX) COLLATE Modern_Spanish_CI_AS NULL,	
 	CONSTRAINT PK_CaseTable_Agendas PRIMARY KEY (Id_Log)
 );
+ALTER TABLE dbo.Log ADD Id_User int NULL;
+
 
 -- USERSSSSSSSS DATA
 -- DROP SCHEMA [security];
