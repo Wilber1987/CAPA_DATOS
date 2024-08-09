@@ -84,11 +84,14 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 			// Obtener la propiedad de límite de filtro
 			FilterData? filterLimit = Inst.filterData?.Find(f =>
 					f.FilterType?.ToLower().Contains("limit") == true);
+					// Obtener la propiedad de límite de filtro
+			FilterData? filterPaginated = Inst.filterData?.Find(f =>
+					f.FilterType?.ToLower().Contains("paginated") == true);
 
 
 			// Construir la consulta SELECT principal
 			string queryString = $"SELECT {Columns} FROM {entityProps[0].TABLE_SCHEMA}.{Inst?.GetType().Name} as {tableAlias} " +
-								$" {CondicionString} {CondSQL} {(filterLimit != null ? $" limit {filterLimit?.Values?[0]}" : "")}";
+								$" {CondicionString} {CondSQL} {(filterLimit != null ? $" limit {filterLimit?.Values?[0]}" : "")} {(filterPaginated != null ? $" OFFSET {filterPaginated?.Values?[0]}" : "")}";
 
 			// Obtener la propiedad de clave principal
 			PropertyInfo? primaryKeyPropierty = Inst?.GetType()?.GetProperties()?.ToList()?.Where(p => Attribute.GetCustomAttribute(p, typeof(PrimaryKey)) != null).FirstOrDefault();

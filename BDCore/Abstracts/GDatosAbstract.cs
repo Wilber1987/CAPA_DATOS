@@ -4,6 +4,7 @@ namespace CAPA_DATOS
 {
 	public abstract class GDatosAbstract
 	{
+		public string? Database { get; set; }
 		/**
 		Esta propiedad abstracta define una conexión a la base de datos. La clase derivada debe implementar esta propiedad para proporcionar una instancia de IDbConnection (por ejemplo, SqlConnection para SQL Server o MySqlConnection para MySQL).
 		*/

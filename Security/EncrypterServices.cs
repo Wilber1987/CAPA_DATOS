@@ -9,9 +9,7 @@ namespace CAPA_DATOS.Security
 {
     public class EncrypterServices
     {      
-        /**
-        * b???_??????Q3 base zaxscd
-        */
+       
         private static Aes myAes = Aes.Create();
         public static void myAesConfig(){
             myAes.IV = Encoding.ASCII.GetBytes("HR$2pIjHR$2pIj12");
