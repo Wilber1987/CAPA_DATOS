@@ -12,6 +12,7 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
             DATA_TYPE as 'DATA_TYPE', TABLE_SCHEMA as 'TABLE_SCHEMA'
             FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_NAME = 'entityName' 
+            AND TABLE_SCHEMA = 'entityDatabase' 
             ORDER BY ORDINAL_POSITION;
         ";
 

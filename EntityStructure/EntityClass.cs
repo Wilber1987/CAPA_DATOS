@@ -302,7 +302,7 @@ public abstract class EntityClass : TransactionalClass
 		{
 			SqlEnumType.SQL_SERVER => SQLServerEntityQuerys.DescribeEntityQuery,
 			SqlEnumType.POSTGRES_SQL => PostgreEntityQuerys.DescribeEntityQuery,
-			SqlEnumType.MYSQL => MySqlEntityQuerys.DescribeEntityQuery,
+			SqlEnumType.MYSQL => MySqlEntityQuerys.DescribeEntityQuery.Replace("entityDatabase", MTConnection?.GDatos.Database),
 			_ => null
 		};
 		// Obtiene los datos de la descripción de la entidad utilizando la consulta determinada
