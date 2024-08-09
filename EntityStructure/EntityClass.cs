@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System.Collections;
+using System.Data;
 using System.Reflection;
 using CAPA_DATOS.BDCore;
 using CAPA_DATOS.BDCore.Abstracts;
@@ -95,6 +96,33 @@ public abstract class EntityClass : TransactionalClass
 		var Data = MTConnection?.TakeList<T>(this, true);
 		// Retorna true si se encuentran datos, false si no se encuentran
 		return Data?.Count > 0;
+	}
+	public Boolean Exists()
+	{
+		Type entityType = this.GetType();
+		PropertyInfo[] lst = this.GetType().GetProperties();
+		// Filtra las propiedades que son claves primarias y tienen valores no nulos
+		var pkProperties = lst.Where(p => (PrimaryKey?)Attribute.GetCustomAttribute(p, typeof(PrimaryKey)) != null).ToList();
+		var values = pkProperties.Where(p => p.GetValue(this) != null).ToList();
+		// Si el número de propiedades de clave primaria coincide con las que tienen valores, realiza la actualización
+		if (pkProperties.Count == values.Count)
+		{
+			var newInstance = Activator.CreateInstance(entityType);
+			// Establecer los valores de clave primaria en la nueva instancia
+			foreach (var property in pkProperties)
+			{
+				var value = property.GetValue(this);
+				property.SetValue(newInstance, value);
+			}
+			// Obtener el método TakeList y llamarlo con la nueva instancia
+			var method = typeof(WDataMapper).GetMethod("TakeList").MakeGenericMethod(entityType);
+			var data = method.Invoke(MTConnection, new object[] { newInstance, true }) as IList;
+			// Retornar verdadero si se encuentran datos, falso si no se encuentran
+			return data?.Count > 0;
+		}
+		return false;
+		// Retorna true si se encuentran datos, false si no se encuentran
+		//return Data?.Count > 0;
 	}
 
 	// Método para obtener una lista de entidades sin aplicar transacción
