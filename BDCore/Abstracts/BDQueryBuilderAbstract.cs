@@ -94,11 +94,9 @@ namespace CAPA_DATOS.BDCore.Abstracts
 			{
 				return (null, null);
 			}
-
 			// Construir la consulta de actualización
 			string strQuery = "UPDATE  " + entityProps[0].TABLE_SCHEMA + "." + TableName + " SET " + Values + Conditions;
-			LoggerServices.AddMessageInfo(strQuery);
-
+			
 			return (strQuery, parameters);
 		}
 		
@@ -170,9 +168,6 @@ namespace CAPA_DATOS.BDCore.Abstracts
 			// Construye la consulta INSERT completa, incluyendo la obtención del identificador insertado (SCOPE_IDENTITY)
 			string QUERY = $"INSERT INTO {entityProps[0].TABLE_SCHEMA}.{Inst.GetType().Name} ({ColumnNames}) VALUES({Values}) SELECT SCOPE_IDENTITY()";
 
-			// Registra un mensaje de información con la consulta construida
-			LoggerServices.AddMessageInfo(QUERY);
-
 			// Retorna la consulta INSERT y los parámetros SQL creados
 			return (QUERY, parameters);
 		}
@@ -200,7 +195,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 			}
 			CondicionString = CondicionString.TrimEnd(new char[] { '0', 'R' });
 			string strQuery = "DELETE FROM  " + entityProps[0].TABLE_SCHEMA + "." + TableName + CondicionString;
-			LoggerServices.AddMessageInfo(strQuery);
+		
 			return (strQuery, parameters);
 		}
 
@@ -239,10 +234,10 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		List<IDbDataParameter> parameters, List<EntityProps> entityProps)
 		{
 			string CondicionString = ""; // String donde se construirá la condición SQL
-			PropertyInfo? prop = props.ToList().Find(p => p.Name.Equals(filter?.PropName)); // Obtiene la propiedad correspondiente al nombre proporcionado en el filtro
+			PropertyInfo? prop = props.ToList().Find(p => p.Name.ToLower().Equals(filter?.PropName?.ToLower())); // Obtiene la propiedad correspondiente al nombre proporcionado en el filtro
 			string? atributeType = ""; // Tipo de datos de la propiedad
 			string AtributeName = ""; // Nombre de la propiedad
-			var EntityProp = entityProps.Find(e => e.COLUMN_NAME.ToLower().ToLower() == filter?.PropName?.ToLower());
+			var EntityProp = entityProps.Find(e => e.COLUMN_NAME.ToLower() == filter?.PropName?.ToLower());
 
 
 			// Verifica si la propiedad existe
