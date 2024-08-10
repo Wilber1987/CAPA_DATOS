@@ -165,7 +165,13 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 			}
 			else
 			{
-				Columns = Columns + AtributeName + ",";
+				if (EntityProp?.DATA_TYPE.ToLower() == "date")
+				{
+					Columns = Columns + $"CAST({AtributeName} AS DATETIME),";
+					 
+				} else {
+					Columns = Columns + AtributeName + ",";
+				}				
 			}
 			var AtributeValue = oProperty.GetValue(Inst);
 			if (AtributeValue != null && jsonProp == null)

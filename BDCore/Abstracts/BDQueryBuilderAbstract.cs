@@ -334,6 +334,10 @@ namespace CAPA_DATOS.BDCore.Abstracts
 					}
 					break;
 			}
+			if (CondicionString == "")
+			{
+				throw new Exception("filtros no establecidos correctamente");
+			}
 			return CondicionString; // Devuelve la condición construida
 		}
 
