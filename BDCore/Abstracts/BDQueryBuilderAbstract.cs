@@ -239,7 +239,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		List<IDbDataParameter> parameters, List<EntityProps> entityProps)
 		{
 			string CondicionString = ""; // String donde se construirá la condición SQL
-			PropertyInfo? prop = props.ToList().Find(p => p.Name.Equals(filter?.PropName)); // Obtiene la propiedad correspondiente al nombre proporcionado en el filtro
+			PropertyInfo? prop = props.ToList().Find(p => p.Name.ToLower().Equals(filter?.PropName?.ToLower())); // Obtiene la propiedad correspondiente al nombre proporcionado en el filtro
 			string? atributeType = ""; // Tipo de datos de la propiedad
 			string AtributeName = ""; // Nombre de la propiedad
 			var EntityProp = entityProps.Find(e => e.COLUMN_NAME.ToLower().ToLower() == filter?.PropName?.ToLower());
@@ -341,7 +341,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 			}
 			if (CondicionString == "")
 			{
-				throw new Exception("filtros no establecidos correctamente");
+				//throw new Exception("filtros no establecidos correctamente");
 			}
 			return CondicionString; // Devuelve la condición construida
 		}
