@@ -25,7 +25,7 @@ public class MySQLConnection
             throw;
         }
     }   
-    private static bool createConexion(string MySQLServer, string SGBD_USER, string SWGBD_PASSWORD, string BDNAME,  int Port = 3306)
+    private static bool createConexion(string SGBD_USER,  string SWGBD_PASSWORD, string MySQLServer,  string BDNAME,  int Port = 3306)
     {
         string userSQLConexion = $"Server={MySQLServer};Port={Port};User ID={SGBD_USER};Password={SWGBD_PASSWORD};Database={BDNAME};";
         SQLM = new WDataMapper(new MySqlGDatos(userSQLConexion), new MySQLQueryBuilder());
@@ -38,6 +38,17 @@ public class MySQLConnection
             SQLM = null;
             return false;
         }
+    }
+
+    public static WDataMapper? BuildDataMapper(string MySQLServer, string SGBD_USER, string SWGBD_PASSWORD, string BDNAME,  int Port = 3306)
+    {
+        string userSQLConexion = $"Server={MySQLServer};Port={Port};User ID={SGBD_USER};Password={SWGBD_PASSWORD};Database={BDNAME};";
+        WDataMapper mapper = new WDataMapper(new MySqlGDatos(userSQLConexion), new MySQLQueryBuilder());
+        mapper.GDatos.Database = BDNAME;
+        if (SQLM?.GDatos.TestConnection() == false) {
+            return null;
+        }
+        return mapper;
     }
 }
 

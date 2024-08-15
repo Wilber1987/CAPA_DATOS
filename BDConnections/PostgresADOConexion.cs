@@ -37,6 +37,16 @@ public class PostgresADOConnection
             return false;
         }
     }
+    public static WDataMapper? BuildDataMapper(string PostgreSQL, string SGBD_USER, string SWGBD_PASSWORD, string BDNAME,  int Port = 3306)
+    {
+        string userSQLConexion = $"Host={PostgreSQL};Port={Port};Username={SGBD_USER};Password={SWGBD_PASSWORD};Database={BDNAME};";
+        WDataMapper mapper = new WDataMapper(new PostgreGDatos(userSQLConexion), new PostgreQueryBuilder());
+        mapper.GDatos.Database = BDNAME;
+        if (SQLM?.GDatos.TestConnection() == false) {
+            return null;
+        }
+        return mapper;
+    }
 }
 
 
