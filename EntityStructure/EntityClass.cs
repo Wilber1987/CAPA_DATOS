@@ -37,7 +37,12 @@ public abstract class EntityClass : TransactionalClass
 	public List<T> Where<T>(params FilterData[] where_condition)
 	{
 		// Verifica si alguna condición de filtro tiene valores nulos o vacíos
-		if (where_condition.Where(c => c.FilterType != "or" && c.FilterType != "and"
+		if (where_condition.Where(c => c.FilterType != "or" 
+		&& c.FilterType != "and"
+		&& c.FilterType != "Not Null"
+		&& c.FilterType != "NotNull"
+		&& c.FilterType != "IsNull"
+		&& c.FilterType != "Is Null"
 		&& (c.Values == null || c.Values?.Count == 0)).ToList().Count > 0)
 		{
 			// Retorna una lista vacía si alguna condición no está definida correctamente

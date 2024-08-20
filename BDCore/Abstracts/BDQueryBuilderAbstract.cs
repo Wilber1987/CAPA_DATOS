@@ -322,11 +322,17 @@ namespace CAPA_DATOS.BDCore.Abstracts
 						CondicionString += $" {AtributeName}  LIKE  '%' + {paramName} + '%' ";
 					}
 					break;
-				case "LIMIT":
-				case "PAGINATE":
-				case "ASC":
-				case "DESC":
-					// Estos tipos de filtro no requieren construcción de condición
+				case "NOTNULL": case "NOT NULL":
+					if (EntityProp != null)
+					{						
+						CondicionString += $" {AtributeName} IS NOT NULL ";
+					}							
+					break;
+				case "ISNULL": case "IS NULL":
+					if (EntityProp != null)
+					{						
+						CondicionString += $" {AtributeName}  IS NULL ";
+					}							
 					break;
 				default:
 					// Para otros tipos de filtro, construye una condición de comparación simple
