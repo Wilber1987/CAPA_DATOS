@@ -78,7 +78,7 @@ namespace CAPA_DATOS.Security
         }
         public Tbl_Profile? Tbl_Profile { get; set; }
 
-        public  Tbl_Profile? Get_Profile()
+        public Tbl_Profile? Get_Profile()
         {
             if (Tbl_Profile == null)
             {
@@ -219,6 +219,7 @@ namespace CAPA_DATOS.Security
         public int? Id_Perfil { get; set; }
         public string? Nombres { get; set; }
         public string? Apellidos { get; set; }
+        public string? Nombres_Completo { get { return $"{Nombres} {Apellidos}"; } }
         public DateTime? FechaNac { get; set; }
         public int? IdUser { get; set; }
         public string? Sexo { get; set; }

@@ -205,7 +205,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
             var values = primaryKeyProperties.Where(p => p.GetValue(entity) != null).ToList();
 
             // Si todas las propiedades de la clave primaria tienen valores, actualiza el objeto, de lo contrario, lo inserta
-            if (primaryKeyProperties.Count == values.Count)
+            if (primaryKeyProperties.Count == values.Count && entity.Exists())
             {
                 UpdateObject(entity, primaryKeyProperties.Select(p => p.Name).ToArray());
             }
@@ -220,7 +220,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		Finalmente, itera sobre las propiedades OneToMany para manejar las relaciones y actualiza o inserta los objetos
 		relacionados según sea necesario.*/
         public object? UpdateObject(EntityClass entity, string[] IdObject)
-        {            
+        {
             // Obtiene las propiedades del objeto utilizando reflexión
             List<PropertyInfo> entityProps = entity.GetType().GetProperties().ToList();
 
@@ -327,12 +327,26 @@ namespace CAPA_DATOS.BDCore.Abstracts
             // Retorna la lista de objetos
             return ListD;
         }
-        // public List<T> TakeList<T>(EntityClass Inst, string queryString)
-        // {
-        // 	DataTable Table = GDatos?.TraerDatosSQL(queryString);
-        // 	List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
-        // 	return ListD;
-        // }
+        public int Count(EntityClass Inst)
+        {
+            // Construye la consulta SELECT utilizando la instancia proporcionada y, opcionalmente, la condición SQL
+            (string queryString, string queryCount, List<IDbDataParameter>? parameters) =
+                QueryBuilder.BuildSelectQuery(Inst, "", false);
+            try
+            {
+                // Ejecuta la consulta SQL para obtener los datos y construye la tabla de datos
+                DataTable? Table = GDatos?.TraerDatosSQL(queryCount, parameters);
+                // Retorna la tabla de datos
+                return Convert.ToInt32(Table?.Rows[0][0]);
+            }
+            catch (Exception e)
+            {
+                // Si ocurre un error durante el proceso, registra el error y relanza la excepción
+                GDatos?.ReStartData(e);
+                LoggerServices.AddMessageError($"ERROR: BuildTable - {Inst.GetType().Name} - {queryString}", e);
+                throw;
+            }
+        }
         /*
 		Este método TakeObject<T> se utiliza para obtener un único objeto del tipo T de la base de datos, 
 		utilizando una instancia de un objeto Inst como referencia y opcionalmente aplicando una condición 
@@ -475,6 +489,8 @@ namespace CAPA_DATOS.BDCore.Abstracts
             (string queryString, string queryCount, List<IDbDataParameter>? parameters) = QueryBuilder.BuildSelectQueryPaginated(Inst, CondSQL, pageNum, pageSize, orderBy, orderDir, fullEntity, isFind);
             return GDatos?.BuildTablePaginated(queryString, queryCount, parameters);
         }
+
+
         #endregion
     }
 
