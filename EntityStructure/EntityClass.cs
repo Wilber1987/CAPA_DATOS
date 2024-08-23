@@ -60,32 +60,6 @@ public abstract class EntityClass : TransactionalClass
 		// Retorna los datos obtenidos o una lista vacía si es nulo
 		return Data ?? new List<T>();
 	}
-	public int Count(params FilterData[] where_condition)
-	{
-		// Verifica si alguna condición de filtro tiene valores nulos o vacíos
-		if (where_condition.Where(c => c.FilterType != "or" 
-		&& c.FilterType != "and"
-		&& c.FilterType != "Not Null"
-		&& c.FilterType != "NotNull"
-		&& c.FilterType != "IsNull"
-		&& c.FilterType != "Is Null"
-		&& (c.Values == null || c.Values?.Count == 0)).ToList().Count > 0)
-		{
-			// Retorna una lista vacía si alguna condición no está definida correctamente
-			return 0;
-		}
-
-		// Si no hay problemas con las condiciones, se agregan al filtro de datos de la entidad
-		if (filterData == null)
-			filterData = new List<FilterData>();
-
-		filterData.AddRange(where_condition.ToList());
-
-		// Se obtienen los datos utilizando el filtro actualizado
-		var Count = MTConnection?.Count(this);
-		// Retorna los datos obtenidos o una lista vacía si es nulo
-		return Count ?? 0;
-	}
 
 	// Método para obtener una lista de entidades donde un campo esté dentro de un conjunto de valores
 	public List<T> Get_WhereIN<T>(string Field, string?[]? conditions)
@@ -97,6 +71,18 @@ public abstract class EntityClass : TransactionalClass
 		// Retorna los datos obtenidos o una lista vacía si es nulo
 		return Data ?? new List<T>();
 	}
+
+	// Método para obtener una lista de entidades donde un campo no esté dentro de un conjunto de valores
+	public List<T> Get_WhereNotIN<T>(string Field, string[] conditions)
+	{
+		// Construye una condición NOT IN a partir de los valores proporcionados
+		string condition = BuildArrayIN(conditions);
+		// Obtiene los datos utilizando la condición NOT IN especificada
+		var Data = MTConnection?.TakeList<T>(this, true, Field + " NOT IN (" + condition + ")");
+		// Retorna los datos obtenidos o una lista vacía si es nulo
+		return Data ?? new List<T>();
+	}
+
 	// Método para encontrar una entidad que cumpla ciertas condiciones
 	public T? Find<T>(params FilterData[]? where_condition)
 	{
@@ -135,8 +121,7 @@ public abstract class EntityClass : TransactionalClass
 			}
 			// Obtener el método TakeList y llamarlo con la nueva instancia
 			var method = typeof(WDataMapper).GetMethod("TakeList").MakeGenericMethod(entityType);
-			var data = method.Invoke(MTConnection, new object[] { newInstance, true, "" }) as IList;
-
+			var data = method.Invoke(MTConnection, new object[] { newInstance, true }) as IList;
 			// Retornar verdadero si se encuentran datos, falso si no se encuentran
 			return data?.Count > 0;
 		}
@@ -189,11 +174,6 @@ public abstract class EntityClass : TransactionalClass
 			MTConnection?.GDatos.BeginTransaction();
 			// Inserta la entidad en la base de datos y obtiene el resultado
 			var result = MTConnection?.InsertObject(this);
-			if (result == null)
-			{
-				MTConnection?.GDatos.RollBackTransaction();
-				throw new Exception($"error al guardar la entidad - {this.GetType().Name}");
-			}
 			// Confirma la transacción
 			MTConnection?.GDatos.CommitTransaction();
 			// Retorna el resultado de la operación de guardado

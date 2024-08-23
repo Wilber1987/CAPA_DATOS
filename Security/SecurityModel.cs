@@ -113,6 +113,18 @@ namespace CAPA_DATOS.Security
             {
                 throw new Exception("no tiene permisos");
             }
+            return Save_User(new Tbl_Profile()
+            {
+                Nombres = this.Nombres,
+                Estado = this.Estado,
+                Correo_institucional = this.Mail,
+                Foto = "\\Media\\profiles\\avatar.png"
+            });
+
+        }
+
+        public object Save_User(Tbl_Profile? tbl_Profile)
+        {
             try
             {
                 this.BeginGlobalTransaction();
@@ -127,14 +139,11 @@ namespace CAPA_DATOS.Security
                         throw new Exception("Correo en uso");
                     }
                     Save();
-                    new Tbl_Profile()
+                    if (tbl_Profile != null)
                     {
-                        Nombres = this.Nombres,
-                        Estado = this.Estado,
-                        Correo_institucional = this.Mail,
-                        Foto = "\\Media\\profiles\\avatar.png",
-                        IdUser = Id_User
-                    }.Save();
+                        tbl_Profile.IdUser = this.Id_User;
+                        tbl_Profile.Save();
+                    }
 
                 }
                 else
@@ -164,8 +173,8 @@ namespace CAPA_DATOS.Security
                 this.RollBackGlobalTransaction();
                 throw;
             }
-
         }
+
         public object GetUsers()
         {
             var Security_Users_List = this.Get<Security_Users>();
@@ -219,7 +228,6 @@ namespace CAPA_DATOS.Security
         public int? Id_Perfil { get; set; }
         public string? Nombres { get; set; }
         public string? Apellidos { get; set; }
-        public string? Nombres_Completo { get { return $"{Nombres} {Apellidos}"; } }
         public DateTime? FechaNac { get; set; }
         public int? IdUser { get; set; }
         public string? Sexo { get; set; }
