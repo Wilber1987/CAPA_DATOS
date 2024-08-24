@@ -5,8 +5,10 @@ namespace CAPA_DATOS.BDCore.Abstracts
 {
 	public abstract class BDQueryBuilderAbstract
 	{
-		public abstract (string queryResults, string queryCount, List<IDbDataParameter>? parameters) BuildSelectQuery(EntityClass Inst, string CondSQL,
-			bool fullEntity = true, bool isFind = true, string? orderBy = null, string? orderDir = null);
+		public abstract (string queryResults, string queryCount, List<IDbDataParameter>? parameters) BuildSelectQuery(
+			EntityClass Inst, 
+			string CondSQL,
+			int recursionDepth = 0);
 
 		public abstract (string queryResults, string queryCount, List<IDbDataParameter>? parameters) BuildSelectQueryPaginated(EntityClass Inst, string CondSQL,
 			int pageNum, int pageSize, string orderBy, string orderDir, bool fullEntity = true, bool isFind = true);
@@ -415,22 +417,17 @@ namespace CAPA_DATOS.BDCore.Abstracts
 			// Eliminar la coma final de la lista de columnas
 			Columns = Columns.TrimEnd(',');
 		}
-		public  string SetOrderByData(EntityClass Inst, string? orderBy, string? orderDir, PropertyInfo? primaryKeyPropierty, string queryString)
+		public  string SetOrderByData(EntityClass Inst,  PropertyInfo? primaryKeyPropierty, string queryString)
 		{
 			// Obtener las órdenes de filtro			
 			var filterOrders = Inst?.orderData?.Where(f => f.PropName != null &&
 					(f.OrderType?.ToLower().Contains("asc") == true || f.OrderType?.ToLower().Contains("desc") == true)).ToList();
-
 			// Construir la cláusula ORDER BY según sea necesario
-			if (orderBy != null)
-			{
-				queryString = queryString + $" ORDER BY {orderBy} {(orderDir == null ? "ASC" : "DESC")} ";
-			}
-			else if (orderBy == null && filterOrders != null && filterOrders.Count != 0)
+			if (filterOrders != null && filterOrders.Count != 0)
 			{
 				queryString = queryString + $" Order by {String.Join(", ", filterOrders.Select(o => $" {o.PropName} {o.OrderType} "))}";
 			}
-			else if (orderBy == null && primaryKeyPropierty != null)
+			else if (primaryKeyPropierty != null)
 			{
 				queryString = queryString + " ORDER BY " + primaryKeyPropierty.Name + " DESC";
 			}
