@@ -80,15 +80,28 @@ namespace CAPA_DATOS.BDCore.Implementations
 			FilterData? filterLimit = Inst.filterData?.Find(f =>
 					f.FilterType?.ToLower().Contains("limit") == true);
 
+			// Obtener la propiedad de límite de filtro
+			FilterData? filterPaginated = Inst.filterData?.Find(f =>
+					f.FilterType?.ToLower().Contains("paginated") == true);
+
+
+
 			// Construir la consulta SELECT principal
 			string queryString = $"SELECT {(filterLimit != null ? $" top {filterLimit?.Values?[0]}" : "")} {Columns}"
 								+ $" FROM {entityProps[0].TABLE_SCHEMA}.{Inst.GetType().Name} as {tableAlias}  {CondicionString} {CondSQL} ";
+
 
 			// Obtener la propiedad de clave principal
 			PropertyInfo? primaryKeyPropierty = Inst?.GetType()?.GetProperties()?.ToList()?.Where(p => Attribute.GetCustomAttribute(p, typeof(PrimaryKey)) != null).FirstOrDefault();
 
 			// Obtener las órdenes de filtro
 			queryString = SetOrderByData(Inst, primaryKeyPropierty, queryString);
+			if (filterPaginated != null)
+			{
+				int? pageNum = Convert.ToInt32(filterPaginated?.Values?[0] ?? "0");
+				int? pageSize = Convert.ToInt32(filterPaginated?.Values?[1] ?? "0");
+				queryString = queryString + " OFFSET " + (pageNum - 1) * pageSize + " ROWS FETCH NEXT " + pageSize + " ROWS ONLY";
+			}
 
 			// Construir la consulta COUNT para obtener el total de registros
 			string queryStringCount = $" SELECT count(*) FROM {entityProps[0].TABLE_SCHEMA}.{Inst?.GetType().Name} as {tableAlias} {CondicionString} {CondSQL};";
@@ -109,7 +122,7 @@ namespace CAPA_DATOS.BDCore.Implementations
 				oneToManyInstance.SetConnection(Inst.GetConnection());
 			}
 			string condition = " " + oneToMany?.ForeignKeyColumn + " = " + tableAlias + "." + oneToMany?.KeyColumn;
-			(string subquery, _, _) = BuildSelectQuery(oneToManyInstance, 
+			(string subquery, _, _) = BuildSelectQuery(oneToManyInstance,
 				condition, oneToMany?.TableName == Inst.GetType().Name ? 3 : (recursionDepth + 1));
 			Columns = Columns + AtributeName
 				+ $" = ({subquery} FOR JSON PATH),";
@@ -146,9 +159,9 @@ namespace CAPA_DATOS.BDCore.Implementations
 			return Columns;
 		}
 
-		private string IncludeManyToOneObjectInQuery(EntityClass Inst, 
+		private string IncludeManyToOneObjectInQuery(EntityClass Inst,
 			string Columns, string tableAlias,
-			PropertyInfo oProperty, string AtributeName, 
+			PropertyInfo oProperty, string AtributeName,
 			ManyToOne? manyToOne, int recursionDepth) // Agregado recursionDepth
 		{
 

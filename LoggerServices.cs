@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -38,22 +39,72 @@ namespace CAPA_DATOS
 			catch (System.Exception)
 			{ }
 		}
+
 		public static void AddMessageError(string message, Exception ex)
 		{
-			Console.WriteLine(message, ex.Message);
+			// Escribe el mensaje y la excepción en la consola para depuración rápida.
+			Console.WriteLine($"{message}: {ex.Message}");
+
 			try
 			{
-				new Log
+				// Detecta si el error es un error relacionado con SQL Server.
+				if (ex is SqlException sqlEx)
+				{
+					// Comprobamos los números de error SQL comunes que indican problemas de conexión.
+					// Esta lista puede ser expandida para incluir otros errores específicos de SQL Server.
+					if (sqlEx.Number == -2 ||  // Timeout
+						sqlEx.Number == 53 ||  // Error de conexión (Nombre de servidor incorrecto)
+						sqlEx.Number == 233 || // Error de conexión (SQL Server no permite conexiones)
+						sqlEx.Number == 4060 ||// Error de inicio de sesión en la base de datos
+						sqlEx.Number == 3981 )  
+					{
+						// Es un error de conexión o transacción.
+						LogErrorToFile(message, ex);
+						return;
+					}
+				}
+
+				// Si no es un error de conexión o transacción, o si es otro tipo de excepción,
+				// intentamos guardar el log en la base de datos.
+				var logEntry = new Log
 				{
 					Fecha = DateTime.Now,
 					body = RemoveSpecialCharactersForSql(
-						$"Tipo: {ex.GetType().Name},/n/n Mensaje: {ex.Message},/n/n Pila de llamadas:/n/n {ex.StackTrace}"),
+						$"Tipo: {ex.GetType().Name},\n\n Mensaje: {ex.Message},\n\n Pila de llamadas:\n\n {ex.StackTrace}"),
 					message = RemoveSpecialCharactersForSql(message),
 					LogType = LogType.ERROR.ToString()
-				}.Save();
+				};
+
+				logEntry.Save();
 			}
-			catch (System.Exception)
-			{ }
+			catch (Exception logEx)
+			{
+				// Maneja la excepción del logging para no dejarla silenciosa.
+				// Aquí puedes decidir cómo manejar esto. Quizás enviar a otro almacenamiento o un log de emergencia.
+				Console.WriteLine("Failed to log error to the database: " + logEx.Message);
+				// También podría escribir este error a un archivo de log como alternativa.
+				LogErrorToFile("Failed to log error to the database", logEx);
+			}
+		}
+
+		private static void LogErrorToFile(string message, Exception ex)
+		{
+			try
+			{
+				// Ruta de archivo de log. Ajusta según sea necesario.
+				string logFilePath = "error_log.txt";
+
+				// Formato de registro de error.
+				string logMessage = $"[{DateTime.Now}] {message}: {ex.Message}{Environment.NewLine}{ex.StackTrace}{Environment.NewLine}";
+
+				// Escribir en el archivo de log.
+				File.AppendAllText(logFilePath, logMessage);
+			}
+			catch (Exception fileEx)
+			{
+				// Si falla el logging en archivo, muestra en consola.
+				Console.WriteLine("Failed to log error to file: " + fileEx.Message);
+			}
 		}
 		static string RemoveSpecialCharactersForSql(string input)
 		{
@@ -79,8 +130,9 @@ namespace CAPA_DATOS
 		}
 
 	}
-	public class Logger : LoggerServices {
-		
+	public class Logger : LoggerServices
+	{
+
 	}
 
 	public class Log : EntityClass

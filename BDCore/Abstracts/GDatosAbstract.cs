@@ -138,7 +138,7 @@ namespace CAPA_DATOS
 			this.SQLMCon.Open();
 			this.MTransaccion = this.MTConnection.BeginTransaction();
 		}
-		public void CommitGlobalTransaction()
+		/*public void CommitGlobalTransaction()
 		{
 			if (this.MTransaccion?.Connection?.State == System.Data.ConnectionState.Open)
 			{
@@ -158,6 +158,62 @@ namespace CAPA_DATOS
 				}
 			}
 			ReStartData();
+		}*/
+
+		public void CommitGlobalTransaction()
+		{
+			if (this.MTransaccion != null)
+			{
+				try
+				{
+					this.MTransaccion.Commit();
+				}
+				catch (Exception ex)
+				{
+					// Manejar el caso donde la transacción ya no sea válida o haya fallado
+					LoggerServices.AddMessageError("Error committing transaction", ex);
+					throw;
+				}
+				finally
+				{
+					this.MTransaccion = null; // Limpiar después del commit
+					this.globalTransaction = false;
+					ReStartData();
+				}
+			}
+			else
+			{
+				// Log o manejar el caso donde la transacción es nula
+				//LoggerServices.AddMessageError("Attempted to commit a null transaction.");
+			}
+		}
+
+		public void RollBackGlobalTransaction()
+		{
+			if (this.MTransaccion != null)
+			{
+				try
+				{
+					this.MTransaccion.Rollback();
+				}
+				catch (Exception ex)
+				{
+					// Manejar el caso donde la transacción ya no sea válida o haya fallado
+					LoggerServices.AddMessageError("Error rolling back transaction", ex);
+					throw;
+				}
+				finally
+				{
+					this.MTransaccion = null; // Limpiar después del rollback
+					this.globalTransaction = false;
+					ReStartData();
+				}
+			}
+			else
+			{
+				// Log o manejar el caso donde la transacción es nula
+				//LoggerServices.AddMessageError("Attempted to rollback a null transaction.");
+			}
 		}
 
 		/**
@@ -172,34 +228,34 @@ namespace CAPA_DATOS
 			/*try
 			{*/
 			return ExecuteWithRetry(() =>
-            {
-                var command = ComandoSql(strQuery, SQLMCon);
-                command.Transaction = this.MTransaccion;
-                SetParametersInCommand(parameters, command);
-                var scalar = command.ExecuteScalar();
-                if (scalar == DBNull.Value)
-                {
-                    return true;
-                }
-                else
-                {
-                    return Convert.ToInt32(scalar);
-                }
-            });
+			{
+				var command = ComandoSql(strQuery, SQLMCon);
+				command.Transaction = this.MTransaccion;
+				SetParametersInCommand(parameters, command);
+				var scalar = command.ExecuteScalar();
+				if (scalar == DBNull.Value)
+				{
+					return true;
+				}
+				else
+				{
+					return Convert.ToInt32(scalar);
+				}
+			});
 		}
 
-        private void SetParametersInCommand(List<IDbDataParameter>? parameters, IDbCommand command)
-        {
-            if (parameters != null)
-            {
-                foreach (var param in parameters)
-                {
-                    command.Parameters.Add(CloneParameter(param));
-                }
-            }
-        }
+		private void SetParametersInCommand(List<IDbDataParameter>? parameters, IDbCommand command)
+		{
+			if (parameters != null)
+			{
+				foreach (var param in parameters)
+				{
+					command.Parameters.Add(CloneParameter(param));
+				}
+			}
+		}
 
-        private IDbDataParameter? CloneParameter(IDbDataParameter originalParam)
+		private IDbDataParameter? CloneParameter(IDbDataParameter originalParam)
 		{
 			IDbDataParameter? newParam = (IDbDataParameter?)Activator.CreateInstance(originalParam.GetType());
 			foreach (var prop in originalParam.GetType().GetProperties())
@@ -213,7 +269,7 @@ namespace CAPA_DATOS
 		}
 		// Otros métodos y propiedades existentes
 
-		protected object ExecuteWithRetry(Func<object> operation, int maxRetries = 60)
+		protected object ExecuteWithRetry(Func<object> operation, int maxRetries = 10)
 		{
 			int retries = 0;
 			while (true)
@@ -223,7 +279,7 @@ namespace CAPA_DATOS
 					return operation();
 				}
 				catch (Exception ex)
-				{
+				{					
 					if (retries >= maxRetries)
 					{
 						// Log the error and rethrow the exception
@@ -233,8 +289,9 @@ namespace CAPA_DATOS
 					}
 					// Log the retry attempt
 					retries++;
+					Console.WriteLine($"read retry query => {retries}");
 					// Optionally, add a delay before retrying
-					Task.Delay(500).Wait();
+					Task.Delay(100).Wait();
 					//this.ReStartData(ex);
 				}
 			}
