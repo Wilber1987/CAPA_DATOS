@@ -229,6 +229,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 				WhereOrAnd(ref CondicionString);
 				string paramName = "@" + AtributeName + AliasGenerator();
 				CondicionString = CondicionString + $"{AtributeName} = {paramName} ";
+				//TODO WILBER
 				IDbDataParameter parameter = CreateParameter(paramName, AtributeValue, entityProp.DATA_TYPE, propertyInfo);
 				parameters.Add(parameter);
 			}

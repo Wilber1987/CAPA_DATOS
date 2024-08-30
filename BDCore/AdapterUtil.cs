@@ -7,6 +7,7 @@ public class AdapterUtil
 {
     public static object GetValue(Object defaultValue, Type type)
     {
+
         string? literal = defaultValue.ToString();
         if (string.IsNullOrEmpty(literal))
         {
@@ -31,8 +32,7 @@ public class AdapterUtil
         }
 
         IConvertible obj = literal;
-        Type? u = Nullable.GetUnderlyingType(type);
-
+        Type? u = Nullable.GetUnderlyingType(type);    
         if (u != null)
         {
             return (obj == null) ? defaultValue : Convert.ChangeType(obj, u);
@@ -94,7 +94,8 @@ public class AdapterUtil
                         }
 
                     }
-                    else continue;
+                    else
+                        continue;
                 }
             }
             else continue;
