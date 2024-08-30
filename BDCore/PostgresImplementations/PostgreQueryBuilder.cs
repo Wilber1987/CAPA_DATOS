@@ -21,7 +21,7 @@ namespace CAPA_DATOS.PostgresImplementations
 		propiedades y filtros adicionales proporcionados. Permite una construcción dinámica de consultas que pueden adaptarse a una variedad de escenarios
 		de recuperación de datos.*/
 		public override (string queryResults, string queryCount, List<IDbDataParameter>? parameters) BuildSelectQuery(EntityClass Inst, string CondSQL,
-		  bool fullEntity = true, bool isFind = false, string? orderBy = null, string? orderDir = null)
+		   int recursionDepth = 0) // Agregado recursionDepth
 		{
 			// Inicialización de variables para la construcción de la consulta
 			string CondicionString = "";
@@ -52,25 +52,30 @@ namespace CAPA_DATOS.PostgresImplementations
 
 				// Si la propiedad pertenece a la entidad
 				if (EntityProp != null)
-                {
-                    IncludeExistingPropiertyInQuery(Inst, ref CondicionString, ref Columns, parameters, oProperty, AtributeName, EntityProp, jsonProp);
-                }
-                // Si la propiedad es una relación "ManyToOne" y se requiere la entidad completa
-                else if (manyToOne != null && fullEntity)
-                {
-                    Columns = IncludeManyToOneObjectInQuery(Inst, Columns, tableAlias, oProperty, AtributeName, manyToOne);
-                }
-                // Si la propiedad es una relación "OneToOne" y se requiere la entidad completa
-                else if (oneToOne != null && fullEntity)
-                {
-                    Columns = IncludeOneToOneObjectInQuery(Inst, Columns, lst, tableAlias, oProperty, AtributeName, oneToOne);
-                }
-                // Si la propiedad es una relación "OneToMany" y se requiere la entidad completa
-                else if (oneToMany != null && fullEntity)
-                {
-                    Columns = IncludeOneToManyObjectInQuery(Inst, Columns, tableAlias, oProperty, AtributeName, oneToMany);
-                }
-            }
+				{
+					IncludeExistingPropiertyInQuery(Inst, ref CondicionString, ref Columns, parameters, oProperty, AtributeName, EntityProp, jsonProp);
+				}
+				// Si la propiedad pertenece a la entidad
+				if (EntityProp != null)
+				{
+					IncludeExistingPropiertyInQuery(Inst, ref CondicionString, ref Columns, parameters, oProperty, AtributeName, EntityProp, jsonProp);
+				}
+				// Si la propiedad es una relación "ManyToOne" y se requiere la entidad completa
+				else if (manyToOne != null && recursionDepth < 3)
+				{
+					Columns = IncludeManyToOneObjectInQuery(Inst, Columns, tableAlias, oProperty, AtributeName, manyToOne, recursionDepth); // Pasar recursionDepth
+				}
+				// Si la propiedad es una relación "OneToOne" y se requiere la entidad completa
+				else if (oneToOne != null && recursionDepth < 3)
+				{
+					Columns = IncludeOneToOneObjectInQuery(Inst, Columns, lst, tableAlias, oProperty, AtributeName, oneToOne, recursionDepth);
+				}
+				// Si la propiedad es una relación "OneToMany" y se requiere la entidad completa
+				else if (oneToMany != null && recursionDepth < 3)
+				{
+					Columns = IncludeOneToManyObjectInQuery(Inst, Columns, tableAlias, oProperty, AtributeName, oneToMany, recursionDepth);
+				}
+			}
 			//colocar filttros al query
 			CondicionString = SetFilterData(Inst, CondicionString, lst, entityProps, parameters);
 
@@ -90,7 +95,7 @@ namespace CAPA_DATOS.PostgresImplementations
 			PropertyInfo? primaryKeyPropierty = Inst?.GetType()?.GetProperties()?.ToList()?.Where(p => Attribute.GetCustomAttribute(p, typeof(PrimaryKey)) != null).FirstOrDefault();
 
 			// Obtener las órdenes de filtro
-			queryString = SetOrderByData(Inst, orderBy, orderDir, primaryKeyPropierty, queryString);
+			queryString = SetOrderByData(Inst, primaryKeyPropierty, queryString);
 
 			// Construir la consulta COUNT para obtener el total de registros
 			string queryStringCount = $" SELECT count(*) FROM {entityProps[0].TABLE_SCHEMA}.{Inst?.GetType().Name} as {tableAlias} {CondicionString} {CondSQL};";
@@ -99,80 +104,93 @@ namespace CAPA_DATOS.PostgresImplementations
 			return (queryString, queryStringCount, parameters);
 		}
 
-        private string IncludeOneToManyObjectInQuery(EntityClass Inst, string Columns, string tableAlias, PropertyInfo oProperty, string AtributeName, OneToMany? oneToMany)
-        {
-            // Construir subconsulta para la relación "OneToMany"
-            var oneToManyInstance = (EntityClass?)Activator.CreateInstance(oProperty.PropertyType.GetGenericArguments()[0]);
-            if (oneToManyInstance != null)
-            {
-                oneToManyInstance.SetConnection(Inst.GetConnection());
-            }
-            string condition = " " + oneToMany?.ForeignKeyColumn + " = " + tableAlias + "." + oneToMany?.KeyColumn;
-            (string subquery, _, _) = BuildSelectQuery(oneToManyInstance, condition, oneToMany?.TableName != Inst.GetType().Name);
-            Columns = Columns +
-                 $" (SELECT json_agg(to_jsonb(t)) FROM ({subquery}) t) as {AtributeName},";
-            return Columns;
-        }
+		private string IncludeOneToManyObjectInQuery(EntityClass Inst,
+			string Columns, string tableAlias,
+			PropertyInfo oProperty, string AtributeName,
+			OneToMany? oneToMany, int recursionDepth) // Agregado recursionDepth
+		{
+			// Construir subconsulta para la relación "OneToMany"
+			var oneToManyInstance = (EntityClass?)Activator.CreateInstance(oProperty.PropertyType.GetGenericArguments()[0]);
+			if (oneToManyInstance != null)
+			{
+				oneToManyInstance.SetConnection(Inst.GetConnection());
+			}
+			string condition = " " + oneToMany?.ForeignKeyColumn + " = " + tableAlias + "." + oneToMany?.KeyColumn;
+			(string subquery, _, _) = BuildSelectQuery(oneToManyInstance,
+				condition, oneToMany?.TableName == Inst.GetType().Name ? 3 : (recursionDepth + 1));
+			Columns = Columns +
+				 $" (SELECT json_agg(to_jsonb(t)) FROM ({subquery}) t) as {AtributeName},";
+			return Columns;
+		}
 
-        private string IncludeOneToOneObjectInQuery(EntityClass Inst, string Columns, PropertyInfo[] lst, string tableAlias, PropertyInfo oProperty, string AtributeName, OneToOne? oneToOne)
-        {
-            // Construir subconsulta JSON para la relación "OneToOne"
-            var oneToOneInstance = (EntityClass?)Activator.CreateInstance(oProperty.PropertyType);
-            if (oneToOneInstance != null)
-            {
-                oneToOneInstance.SetConnection(Inst.GetConnection());
-            }
-            List<PropertyInfo> primaryKeyProperties = lst.Where(p => Attribute.GetCustomAttribute(p, typeof(PrimaryKey)) != null).ToList();
-            PrimaryKey? pkInfo = (PrimaryKey?)Attribute.GetCustomAttribute(primaryKeyProperties[0], typeof(PrimaryKey));
-            if (pkInfo != null)
-            {
-                string condition = " " + oneToOne?.KeyColumn + " = " + tableAlias + "." + oneToOne?.ForeignKeyColumn;
-                (string subquery, _, _) = BuildSelectQuery(oneToOneInstance, condition, primaryKeyProperties.Find(p => pkInfo.Identity) != null);
-                Columns = Columns + $" to_jsonb(({subquery})) as {AtributeName},";
-            }
+		private string IncludeOneToOneObjectInQuery(EntityClass Inst,
+			string Columns, PropertyInfo[] lst,
+			string tableAlias,
+			PropertyInfo oProperty,
+			string AtributeName,
+			OneToOne? oneToOne,
+			int recursionDepth)
+		{
+			// Construir subconsulta JSON para la relación "OneToOne"
+			var oneToOneInstance = (EntityClass?)Activator.CreateInstance(oProperty.PropertyType);
+			if (oneToOneInstance != null)
+			{
+				oneToOneInstance.SetConnection(Inst.GetConnection());
+			}
+			List<PropertyInfo> primaryKeyProperties = lst.Where(p => Attribute.GetCustomAttribute(p, typeof(PrimaryKey)) != null).ToList();
+			PrimaryKey? pkInfo = (PrimaryKey?)Attribute.GetCustomAttribute(primaryKeyProperties[0], typeof(PrimaryKey));
+			if (pkInfo != null)
+			{
+				string condition = " " + oneToOne?.KeyColumn + " = " + tableAlias + "." + oneToOne?.ForeignKeyColumn;
+				(string subquery, _, _) = BuildSelectQuery(oneToOneInstance, condition,  recursionDepth: recursionDepth + 1);
+				Columns = Columns + $" to_jsonb(({subquery})) as {AtributeName},";
+			}
 
-            return Columns;
-        }
+			return Columns;
+		}
 
-        private string IncludeManyToOneObjectInQuery(EntityClass Inst, string Columns, string tableAlias, PropertyInfo oProperty, string AtributeName, ManyToOne? manyToOne)
-        {
-            // Construir subconsulta JSON para la relación "ManyToOne"
-            var manyToOneInstance = (EntityClass?)Activator.CreateInstance(oProperty.PropertyType);
-            if (manyToOneInstance != null)
-            {
-                manyToOneInstance.SetConnection(Inst.GetConnection());
-            }
-            string condition = " " + manyToOne?.KeyColumn + " = " + tableAlias + "." + manyToOne?.ForeignKeyColumn;
-            (string subquery, _, _) = BuildSelectQuery(manyToOneInstance, condition, false);
-            Columns = Columns + $" to_jsonb(({subquery})) as {AtributeName},";
-            return Columns;
-        }
+		private string IncludeManyToOneObjectInQuery(EntityClass Inst, 
+			string Columns, string tableAlias,
+			PropertyInfo oProperty, string AtributeName, 
+			ManyToOne? manyToOne, int recursionDepth) // Agregado recursionDepth
+		{
+			// Construir subconsulta JSON para la relación "ManyToOne"
+			var manyToOneInstance = (EntityClass?)Activator.CreateInstance(oProperty.PropertyType);
+			if (manyToOneInstance != null)
+			{
+				manyToOneInstance.SetConnection(Inst.GetConnection());
+			}
+			string condition = " " + manyToOne?.KeyColumn + " = " + tableAlias + "." + manyToOne?.ForeignKeyColumn;
+			(string subquery, _, _) = BuildSelectQuery(manyToOneInstance, condition, recursionDepth: recursionDepth + 1); // Incrementar recursionDepth
+			Columns = Columns + $" to_jsonb(({subquery})) as {AtributeName},";
+			return Columns;
+		}
 
-        private void IncludeExistingPropiertyInQuery(EntityClass Inst, ref string CondicionString, ref string Columns, List<IDbDataParameter> parameters, PropertyInfo oProperty, string AtributeName, EntityProps? EntityProp, JsonProp? jsonProp)
-        {
-            if (jsonProp != null)
-            {
-                //JsonColumns += $" CROSS APPLY OPENJSON({AtributeName} ) AS {AtributeName} ";
-                Columns += $" to_jsonb(({AtributeName})) as {AtributeName},";
-            }
-            else
-            {
-                // Agregar el nombre de la columna a las columnas seleccionadas
-                Columns = Columns + AtributeName + ",";
-            }
-            // Construir condiciones de consulta basadas en el valor de la propiedad
-            var AtributeValue = oProperty.GetValue(Inst);
-            if (AtributeValue != null && jsonProp == null)
-            {
-                WhereConstruction(ref CondicionString, AtributeName, AtributeValue, parameters, EntityProp, oProperty);
-            }
-        }
+		private void IncludeExistingPropiertyInQuery(EntityClass Inst, ref string CondicionString, ref string Columns, List<IDbDataParameter> parameters, PropertyInfo oProperty, string AtributeName, EntityProps? EntityProp, JsonProp? jsonProp)
+		{
+			if (jsonProp != null)
+			{
+				//JsonColumns += $" CROSS APPLY OPENJSON({AtributeName} ) AS {AtributeName} ";
+				Columns += $" to_jsonb(({AtributeName})) as {AtributeName},";
+			}
+			else
+			{
+				// Agregar el nombre de la columna a las columnas seleccionadas
+				Columns = Columns + AtributeName + ",";
+			}
+			// Construir condiciones de consulta basadas en el valor de la propiedad
+			var AtributeValue = oProperty.GetValue(Inst);
+			if (AtributeValue != null && jsonProp == null)
+			{
+				WhereConstruction(ref CondicionString, AtributeName, AtributeValue, parameters, EntityProp, oProperty);
+			}
+		}
 
-        public override (string queryResults, string queryCount, List<IDbDataParameter>? parameters) BuildSelectQueryPaginated(EntityClass Inst,
+		public override (string queryResults, string queryCount, List<IDbDataParameter>? parameters) BuildSelectQueryPaginated(EntityClass Inst,
 		 string CondSQL, int pageNum, int pageSize, string orderBy, string orderDir, bool fullEntity = true, bool isFind = false)
 		{
 			//TODO REMOVER LIMIT FILTER EN INST FILTERDATA
-			(string queryString, string queryCount, List<IDbDataParameter>? parameters) = BuildSelectQuery(Inst, CondSQL, fullEntity, isFind, orderBy, orderDir);
+			(string queryString, string queryCount, List<IDbDataParameter>? parameters) = BuildSelectQuery(Inst, CondSQL);
 			// paginación
 			if (queryString.ToUpper().Contains(" LIMIT "))
 			{

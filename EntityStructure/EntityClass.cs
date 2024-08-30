@@ -298,7 +298,33 @@ public abstract class EntityClass : TransactionalClass
 			throw;
 		}
 	}
+	
+public int Count(params FilterData[] where_condition)
+	{
+		// Verifica si alguna condición de filtro tiene valores nulos o vacíos
+		if (where_condition.Where(c => c.FilterType != "or" 
+		&& c.FilterType != "and"
+		&& c.FilterType != "Not Null"
+		&& c.FilterType != "NotNull"
+		&& c.FilterType != "IsNull"
+		&& c.FilterType != "Is Null"
+		&& (c.Values == null || c.Values?.Count == 0)).ToList().Count > 0)
+		{
+			// Retorna una lista vacía si alguna condición no está definida correctamente
+			return 0;
+		}
 
+		// Si no hay problemas con las condiciones, se agregan al filtro de datos de la entidad
+		if (filterData == null)
+			filterData = new List<FilterData>();
+
+		filterData.AddRange(where_condition.ToList());
+
+		// Se obtienen los datos utilizando el filtro actualizado
+		var Count = MTConnection?.Count(this);
+		// Retorna los datos obtenidos o una lista vacía si es nulo
+		return Count ?? 0;
+	}
 	// Método para describir la estructura de la entidad utilizando un tipo de enumeración de SQL
 	public List<EntityProps> DescribeEntity(SqlEnumType sqlEnumType)
 	{

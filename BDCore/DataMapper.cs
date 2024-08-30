@@ -304,6 +304,26 @@ namespace CAPA_DATOS.BDCore.Abstracts
             (string? strQuery, List<IDbDataParameter>? parameters) = QueryBuilder.BuildDeleteQuery(Inst);
             return GDatos?.ExcuteSqlQuery(strQuery, parameters);
         }
+        public int Count(EntityClass Inst)
+        {
+            // Construye la consulta SELECT utilizando la instancia proporcionada y, opcionalmente, la condición SQL
+            (string queryString, string queryCount, List<IDbDataParameter>? parameters) =
+                QueryBuilder.BuildSelectQuery(Inst, "", 3);
+            try
+            {
+                // Ejecuta la consulta SQL para obtener los datos y construye la tabla de datos
+                DataTable? Table = GDatos?.TraerDatosSQL(queryCount, parameters);
+                // Retorna la tabla de datos
+                return Convert.ToInt32(Table?.Rows[0][0]);
+            }
+            catch (Exception e)
+            {
+                // Si ocurre un error durante el proceso, registra el error y relanza la excepción
+                GDatos?.ReStartData(e);
+                LoggerServices.AddMessageError($"ERROR: BuildTable - {Inst.GetType().Name} - {queryString}", e);
+                throw;
+            }
+        }
 
         #endregion
 
@@ -348,7 +368,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
         public T? TakeObject<T>(EntityClass Inst, string CondSQL = "")
         {
             // Construye la consulta SELECT utilizando la instancia proporcionada y, opcionalmente, la condición SQL
-            (string queryString, string queryCount, List<IDbDataParameter>? parameters) = QueryBuilder.BuildSelectQuery(Inst, CondSQL, true, true);
+            (string queryString, string queryCount, List<IDbDataParameter>? parameters) = QueryBuilder.BuildSelectQuery(Inst, CondSQL);
 
             try
             {
@@ -449,7 +469,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
         public DataTable? BuildTable(EntityClass Inst, ref string CondSQL, bool fullEntity = true, bool isFind = true)
         {
             // Construye la consulta SELECT utilizando la instancia proporcionada y, opcionalmente, la condición SQL
-            (string queryString, string queryCount, List<IDbDataParameter>? parameters) = QueryBuilder.BuildSelectQuery(Inst, CondSQL, fullEntity, isFind);
+            (string queryString, string queryCount, List<IDbDataParameter>? parameters) = QueryBuilder.BuildSelectQuery(Inst, CondSQL);
 
             try
             {

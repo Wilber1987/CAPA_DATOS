@@ -21,8 +21,9 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 		opciones de filtrado. Este método es crucial para construir consultas SELECT complejas basadas en el estado actual del objeto EntityClass, sus 
 		propiedades y filtros adicionales proporcionados. Permite una construcción dinámica de consultas que pueden adaptarse a una variedad de escenarios
 		de recuperación de datos.*/
-		public override (string queryResults, string queryCount, List<IDbDataParameter>? parameters) BuildSelectQuery(EntityClass Inst, string CondSQL,
-		  bool fullEntity = true, bool isFind = false, string? orderBy = null, string? orderDir = null)
+		public override (string queryResults, string queryCount, List<IDbDataParameter>? parameters) BuildSelectQuery(
+			EntityClass Inst, string CondSQL,
+		  int recursionDepth = 0) // Agregado recursionDepth
 		{
 			// Inicialización de variables para la construcción de la consulta
 			string CondicionString = "";
@@ -56,7 +57,7 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 				{
 					IncludeExistingPropiertyInQuery(Inst, ref CondicionString, ref Columns, parameters, oProperty, AtributeName, EntityProp, jsonProp);
 				}
-				// Si la propiedad es una relación "ManyToOne" y se requiere la entidad completa
+				/* // Si la propiedad es una relación "ManyToOne" y se requiere la entidad completa
 				else if (manyToOne != null && fullEntity)
 				{
 					//TODO REIMPLEMENTAR
@@ -73,7 +74,7 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 				{
 					//TODO REIMPLEMENTAR
 					//Columns = IncludeOneToManyObjectInQuery(Inst, Columns, tableAlias, oProperty, AtributeName, oneToMany);
-				}
+				} */
 			}
 			//colocar filttros al query
 			CondicionString = SetFilterData(Inst, CondicionString, lst, entityProps, parameters);
@@ -97,7 +98,7 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 			PropertyInfo? primaryKeyPropierty = Inst?.GetType()?.GetProperties()?.ToList()?.Where(p => Attribute.GetCustomAttribute(p, typeof(PrimaryKey)) != null).FirstOrDefault();
 
 			// Obtener las órdenes de filtro
-			queryString = SetOrderByData(Inst, orderBy, orderDir, primaryKeyPropierty, queryString);
+			queryString = SetOrderByData(Inst, primaryKeyPropierty, queryString);
 
 			// Construir la consulta COUNT para obtener el total de registros
 			string queryStringCount = $" SELECT count(*) FROM {entityProps[0].TABLE_SCHEMA}.{Inst?.GetType().Name} as {tableAlias} {CondicionString} {CondSQL};";
@@ -115,7 +116,7 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 				oneToManyInstance.SetConnection(Inst.GetConnection());
 			}
 			string condition = " " + oneToMany?.ForeignKeyColumn + " = " + tableAlias + "." + oneToMany?.KeyColumn;
-			(string subquery, _, _) = BuildSelectQuery(oneToManyInstance, condition, oneToMany?.TableName != Inst.GetType().Name);
+			(string subquery, _, _) = BuildSelectQuery(oneToManyInstance, condition);
 
 			// Construir la subconsulta para agregar los resultados como JSON
 			Columns = Columns +
@@ -136,7 +137,7 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 			if (pkInfo != null)
 			{
 				string condition = " " + oneToOne?.KeyColumn + " = " + tableAlias + "." + oneToOne?.ForeignKeyColumn;
-				(string subquery, _, _) = BuildSelectQuery(oneToOneInstance, condition, primaryKeyProperties.Find(p => pkInfo.Identity) != null);
+				(string subquery, _, _) = BuildSelectQuery(oneToOneInstance, condition);
 				Columns = Columns + $" JSON_OBJECT(({subquery})) as {AtributeName},";
 			}
 
@@ -151,7 +152,7 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 				manyToOneInstance.SetConnection(Inst.GetConnection());
 			}
 			string condition = " " + manyToOne?.KeyColumn + " = " + tableAlias + "." + manyToOne?.ForeignKeyColumn;
-			(string subquery, _, _) = BuildSelectQuery(manyToOneInstance, condition, false);
+			(string subquery, _, _) = BuildSelectQuery(manyToOneInstance, condition);
 			Columns = Columns + $" JSON_ARRAYAGG(({subquery})) as {AtributeName},";
 			return Columns;
 		}
@@ -191,7 +192,7 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 		 string CondSQL, int pageNum, int pageSize, string orderBy, string orderDir, bool fullEntity = true, bool isFind = false)
 		{
 			//TODO REMOVER LIMIT FILTER EN INST FILTERDATA
-			(string queryString, string queryCount, List<IDbDataParameter>? parameters) = BuildSelectQuery(Inst, CondSQL, fullEntity, isFind, orderBy, orderDir);
+			(string queryString, string queryCount, List<IDbDataParameter>? parameters) = BuildSelectQuery(Inst, CondSQL);
 			// paginación
 			if (queryString.ToUpper().Contains(" LIMIT "))
 			{
