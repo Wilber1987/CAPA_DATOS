@@ -169,6 +169,9 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 				if (EntityProp?.DATA_TYPE.ToLower() == "date")
 				{					
 					Columns = Columns + $"CASE WHEN {AtributeName} < '1753-01-01' THEN CAST('1990-01-01 00:00:00' AS DATETIME) ELSE CAST(CONCAT({AtributeName}, ' 00:00:00') AS DATETIME) END AS {AtributeName},";
+				}else if (EntityProp?.DATA_TYPE.ToLower() == "bit")
+				{					
+					Columns = Columns + $"CASE WHEN {AtributeName} = '1' THEN 'true' ELSE 'false' END AS {AtributeName},";
 				}
 				else
 				{

@@ -221,15 +221,17 @@ namespace CAPA_DATOS.BDCore.Implementations
 				case "char":
 					sqlDbType = SqlDbType.NVarChar;
 					break;
-				case "int":
 				case "float":
 					sqlDbType = SqlDbType.Float;
 					break;
 				case "decimal":
 					sqlDbType = SqlDbType.Decimal;
 					break;
-				case "bigint":
 				case "money":
+					sqlDbType = SqlDbType.Money;
+					break;
+				case "int":
+				case "bigint":
 				case "smallint":
 					sqlDbType = SqlDbType.Int;
 					break;
