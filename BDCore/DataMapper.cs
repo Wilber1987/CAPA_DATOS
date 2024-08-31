@@ -189,7 +189,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
         /*Este método asegura que el objeto relacionado se inserte en la base de datos correctamente. Primero, establece la clave externa 
 		en el objeto relacionado. Luego, verifica si todas las propiedades de la clave primaria tienen valores. Si es así, actualiza 
 		el objeto en la base de datos; de lo contrario, lo inserta como un nuevo registro.*/
-        private void InsertRelationatedObject(object foreignKeyValue, EntityClass entity, PropertyInfo foreignKeyColumn)
+        private void InsertRelationatedObject(object foreignKeyValue, EntityClass entity, PropertyInfo foreignKeyColumn, bool isUpdate = false)
         {
 
             // Establece el valor de la clave externa en el objeto relacionado
@@ -200,18 +200,25 @@ namespace CAPA_DATOS.BDCore.Abstracts
 
             // Filtra las propiedades que tienen el atributo [PrimaryKey]
             var primaryKeyProperties = entityProps.Where(p => (PrimaryKey?)Attribute.GetCustomAttribute(p, typeof(PrimaryKey)) != null).ToList();
+            var primaryKeyPropertiesIdentitys = entityProps
+            .Where(p => (PrimaryKey?)Attribute.GetCustomAttribute(p, typeof(PrimaryKey)) != null
+            && ((PrimaryKey?)Attribute.GetCustomAttribute(p, typeof(PrimaryKey)))?.Identity == true).ToList();
 
             // Filtra las propiedades que tienen un valor no nulo de la clave primaria
             var values = primaryKeyProperties.Where(p => p.GetValue(entity) != null).ToList();
 
             // Si todas las propiedades de la clave primaria tienen valores, actualiza el objeto, de lo contrario, lo inserta
-            if (primaryKeyProperties.Count == values.Count)
+            if (primaryKeyProperties.Count == values.Count && isUpdate)
             {
                 UpdateObject(entity, primaryKeyProperties.Select(p => p.Name).ToArray());
             }
-            else
+            else if (primaryKeyPropertiesIdentitys.Count == 1 || primaryKeyPropertiesIdentitys.Count == 0)
             {
                 this.InsertObject(entity);
+            }
+            else
+            {
+                throw new Exception("La entidad posee primary key sin identity y esta nulla");
             }
         }
 
@@ -220,7 +227,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		Finalmente, itera sobre las propiedades OneToMany para manejar las relaciones y actualiza o inserta los objetos
 		relacionados según sea necesario.*/
         public object? UpdateObject(EntityClass entity, string[] IdObject)
-        {            
+        {
             // Obtiene las propiedades del objeto utilizando reflexión
             List<PropertyInfo> entityProps = entity.GetType().GetProperties().ToList();
 
@@ -261,7 +268,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
                         {
                             // Obtiene el valor de la clave primaria del objeto principal y llama a InsertRelationatedObject para insertar el objeto relacionado
                             var primaryKeyValue = entity?.GetType()?.GetProperty(keyColumn?.Name)?.GetValue(entity);
-                            InsertRelationatedObject(primaryKeyValue, (EntityClass)value, foreignKeyColumn);
+                            InsertRelationatedObject(primaryKeyValue, (EntityClass)value, foreignKeyColumn, true);
                         }
                     }
                 }
@@ -365,15 +372,15 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		Si la consulta no devuelve filas, se retorna el valor predeterminado para el tipo T, 
 		que normalmente es null. Si ocurre algún error durante el proceso, se registra el error y se relanza la excepción.
 		*/
-        public T? TakeObject<T>(EntityClass Inst, string CondSQL = "")
+        public T? TakeObject<T>(EntityClass Inst, string CondSQL = "", bool isSimpleFind = false)
         {
             // Construye la consulta SELECT utilizando la instancia proporcionada y, opcionalmente, la condición SQL
-            (string queryString, string queryCount, List<IDbDataParameter>? parameters) = QueryBuilder.BuildSelectQuery(Inst, CondSQL);
+            (string queryString, string queryCount, List<IDbDataParameter>? parameters) = QueryBuilder.BuildSelectQuery(Inst, CondSQL, isSimpleFind ? 3 : 0);
 
             try
             {
                 // Verifica si la consulta contiene la cláusula WHERE, ya que es necesaria para obtener un solo objeto
-                if (!queryString.ToUpper().Contains(" WHERE "))
+                if (!queryCount.ToUpper().Contains(" WHERE "))
                 {
                     // Si la consulta no contiene la cláusula WHERE, lanza una excepción
                     throw new Exception($"No es posible buscar el objeto. La entidad {Inst.GetType().Name} requiere filtros o parámetros con valores para hacer la comparación.");
