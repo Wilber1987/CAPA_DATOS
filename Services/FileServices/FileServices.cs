@@ -46,6 +46,7 @@ namespace CAPA_DATOS.Services
 
 				ModelFiles AttachFiles = new ModelFiles
 				{
+					Name = FileName,
 					Value = RutaRelativa,
 					Type = FileType
 				};
@@ -212,6 +213,12 @@ namespace CAPA_DATOS.Services
 
 	public class ModelFiles
 	{
+		/*
+		{
+			"Name": "20240519_145425.jpg",
+			"Value": "wwwroot\\Media\\Attach\\1e756b68-5353-40f2-8064-7474e9efa77c.png",
+			"Type": ".png"
+		}*/
 		public string? Name { get; set; }
 		public string? Value { get; set; }
 		public string? Type { get; set; }
