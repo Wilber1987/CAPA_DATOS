@@ -415,4 +415,8 @@ public abstract class TransactionalClass
 	{
 		MTConnection?.GDatos.RollBackGlobalTransaction();
 	}
+	public object? ExecuteSqlQuery(string query)
+	{
+		return MTConnection?.GDatos.ExcuteSqlQueryWithOutScalar(query);
+	}
 }

@@ -109,7 +109,7 @@ namespace CAPA_DATOS
 		/*Between*/
 		public static FilterData Between(string? propName, DateTime value, DateTime value2)
 		{
-			return new FilterData { PropName = propName, FilterType = "BETWEEN", Values = new List<string?> { value.ToString(), value2.ToString() } };
+			return new FilterData { PropName = propName, FilterType = "BETWEEN", Values = new List<string?> { value.ToString("yyyy/MM/dd hh:mm:ss"), value2.ToString("yyyy/MM/dd hh:mm:ss")}};
 		}
 		public static FilterData Between(string? propName, int value, int value2)
 		{
