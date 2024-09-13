@@ -1,106 +1,96 @@
+using System;
 using System.Data;
+using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json;
 
-namespace CAPA_DATOS;
-public class AdapterUtil
+namespace CAPA_DATOS
 {
-    public static object GetValue(Object defaultValue, Type type)
+    public class AdapterUtil
     {
-
-        string? literal = defaultValue.ToString();
-        if (string.IsNullOrEmpty(literal))
+        public static object? GetValue(object defaultValue, Type type)
         {
-            return defaultValue;
+            if (defaultValue == null) return null;
+            if (type.IsInstanceOfType(defaultValue)) return defaultValue;
+
+            var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+            if (underlyingType.IsEnum) return Enum.Parse(underlyingType, defaultValue.ToString()!, true);
+
+            try { return Convert.ChangeType(defaultValue, underlyingType); }
+            catch { return defaultValue; } // Maneja conversiones inválidas devolviendo el valor por defecto
         }
 
-        Type underlyingType = Nullable.GetUnderlyingType(type) ?? type;
 
-        if (underlyingType.IsEnum)
+        public static object? GetJsonValue(object defaultValue, Type type)
         {
-            // Si el tipo es un enumerado, intenta convertir la cadena al enumerado.
-            try
+            if (defaultValue is string literal && !string.IsNullOrEmpty(literal))
             {
-                return Enum.Parse(underlyingType, literal, ignoreCase: true);
+                try { return JsonConvert.DeserializeObject(literal, type); }
+                catch { }
             }
-            catch (ArgumentException)
+            return null;
+        }
+
+
+        public static bool JsonCompare(object obj, object another)
+        {
+            if (ReferenceEquals(obj, another)) return true;
+            if (obj == null || another == null) return false;
+
+            var objJson = JsonConvert.SerializeObject(obj, Formatting.None, new JsonSerializerSettings
             {
-                // Puedes manejar la excepción de argumento aquí si es necesario.
-                // En este caso, devolvemos el valor predeterminado.
-                return defaultValue;
-            }
-        }
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                NullValueHandling = NullValueHandling.Ignore,
+            });
 
-        IConvertible obj = literal;
-        Type? u = Nullable.GetUnderlyingType(type);    
-        if (u != null)
-        {
-            return (obj == null) ? defaultValue : Convert.ChangeType(obj, u);
-        }
-        else
-        {
-            return Convert.ChangeType(obj, type);
-        }
-    }
-    public static object? GetJsonValue(Object DefaultValue, Type type)
-    {
-        string? Literal = DefaultValue.ToString();
-        if (Literal == null || Literal == "" || Literal == string.Empty) return null;
-        var ListInstanceType = JsonConvert.DeserializeObject(Literal, type);
-        return ListInstanceType;
-    }
-    //DEPRECATE        
-    public static bool JsonCompare(object obj, object another)
-    {
-        if (ReferenceEquals(obj, another)) return true;
-        if ((obj == null) || (another == null)) return false;
-        if (obj.GetType() != another.GetType()) return false;
-
-        var objJson = JsonConvert.SerializeObject(obj);
-        var anotherJson = JsonConvert.SerializeObject(another);
-
-        return objJson == anotherJson;
-    }
-    public static List<T> ConvertDataTable<T>(DataTable dt, object Inst)
-    {
-        return dt.AsEnumerable().Select(row => ConvertRow<T>(Inst, row)).ToList();
-    }
-    public static T ConvertRow<T>(object Inst, DataRow dr)
-    {
-        var obj = Activator.CreateInstance<T>();
-        Type temp = Inst.GetType();
-        foreach (DataColumn column in dr.Table.Columns)
-        {
-            if (!string.IsNullOrEmpty(dr[column.ColumnName].ToString()))
+            var anotherJson = JsonConvert.SerializeObject(another, Formatting.None, new JsonSerializerSettings
             {
-                foreach (PropertyInfo oProperty in temp.GetProperties())
-                {
-                    if (oProperty.Name.ToLower() == column.ColumnName.ToLower())
-                    {
-                        var val = dr[column.ColumnName];
-                        var jsonProp = (JsonProp?)Attribute.GetCustomAttribute(oProperty, typeof(JsonProp));
-                        var oneToOne = (OneToOne?)Attribute.GetCustomAttribute(oProperty, typeof(OneToOne));
-                        var manyToOne = (ManyToOne?)Attribute.GetCustomAttribute(oProperty, typeof(ManyToOne));
-                        var oneToMany = (OneToMany?)Attribute.GetCustomAttribute(oProperty, typeof(OneToMany));
-                        if (oneToOne != null || manyToOne != null || oneToMany != null || jsonProp != null)
-                        {
-                            var getVal = AdapterUtil.GetJsonValue(val, oProperty.PropertyType);
-                            oProperty.SetValue(obj, getVal);
-                        }
-                        else
-                        {
-                            var getVal = AdapterUtil.GetValue(val, oProperty.PropertyType);
-                            oProperty.SetValue(obj, getVal);
-                        }
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                NullValueHandling = NullValueHandling.Ignore,
+            });
 
-                    }
-                    else
-                        continue;
-                }
-            }
-            else continue;
+            return objJson == anotherJson;
         }
-        return obj;
-    }
 
+        public static List<T> ConvertDataTable<T>(DataTable dt, object Inst)
+        {
+            return dt.AsEnumerable()
+                     .Select(row => ConvertRow<T>(Inst, row))
+                     .ToList();
+        }
+
+        public static T ConvertRow<T>(object Inst, DataRow dr)
+        {
+            var obj = Activator.CreateInstance<T>();
+            var instanceType = Inst.GetType();
+            var properties = instanceType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach (var column in dr.Table.Columns.Cast<DataColumn>())
+            {
+                string columnName = column.ColumnName.ToLower();
+                object? columnValue = dr[column.ColumnName];
+
+                if (string.IsNullOrEmpty(columnValue?.ToString()))
+                    continue;
+
+                var property = properties.FirstOrDefault(p => p.Name.Equals(columnName, StringComparison.OrdinalIgnoreCase));
+
+                if (property == null)
+                    continue;
+
+                var jsonProp = property.GetCustomAttribute<JsonProp>();
+                var oneToOne = property.GetCustomAttribute<OneToOne>();
+                var manyToOne = property.GetCustomAttribute<ManyToOne>();
+                var oneToMany = property.GetCustomAttribute<OneToMany>();
+
+                object? value = (jsonProp != null || oneToOne != null || manyToOne != null || oneToMany != null)
+                    ? GetJsonValue(columnValue, property.PropertyType)
+                    : GetValue(columnValue, property.PropertyType);
+
+                property.SetValue(obj, value);
+            }
+
+            return obj;
+        }
+    }
 }
