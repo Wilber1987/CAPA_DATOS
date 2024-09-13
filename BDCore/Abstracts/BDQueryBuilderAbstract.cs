@@ -180,7 +180,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		}
 		public (string?, List<IDbDataParameter>?) BuildDeleteQuery(EntityClass Inst)
 		{
-			//TODO VALIDAR BIEN
+			//TODO VALIDAR BIEN, validar filterdata y OrderData!!
 			string TableName = Inst.GetType().Name;
 			string CondicionString = "";
 			Type _type = Inst.GetType();
@@ -194,7 +194,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 				var AtributeValue = oProperty.GetValue(Inst);
 				// Buscar la propiedad correspondiente en las propiedades de la entidad
 				var EntityProp = entityProps.Find(e => e.COLUMN_NAME.ToLower() == AtributeName.ToLower());
-				if (AtributeValue != null)
+				if (AtributeValue != null && EntityProp != null)
 				{
 					WhereConstruction(ref CondicionString, AtributeName, AtributeValue, parameters, EntityProp, oProperty);
 				}
