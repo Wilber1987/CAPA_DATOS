@@ -16,11 +16,11 @@ public class SqlADOConexion
         {
             return createConexion(SQLServer, SGBD_USER, SWGBD_PASSWORD, BDNAME);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             SQLM = null;
-            return false;
-            throw;
+            //return false;
+            throw new Exception("Error al conectar a base de datos");
         }
     }
     private static bool createConexion(string SQLServer, string SGBD_USER, string SWGBD_PASSWORD, string BDNAME)
