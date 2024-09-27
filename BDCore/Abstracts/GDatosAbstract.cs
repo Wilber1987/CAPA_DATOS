@@ -244,6 +244,25 @@ namespace CAPA_DATOS
 			});
 		}
 
+		public object? ExcuteSqlQueryWithOutScalar(string? strQuery, List<IDbDataParameter>? parameters = null)
+		{			
+			try
+			{
+				SQLMCon.Open();
+				var command = ComandoSql(strQuery, SQLMCon);
+				command.Transaction = this.MTransaccion;
+				SetParametersInCommand(parameters, command);
+				var scalar = command.ExecuteNonQuery();
+				SQLMCon.Close();
+				return true;			
+			}
+			catch (System.Exception)
+			{		
+				ReStartData();		
+				return false;
+			}				
+		}
+
 		private void SetParametersInCommand(List<IDbDataParameter>? parameters, IDbCommand command)
 		{
 			if (parameters != null)
@@ -269,7 +288,7 @@ namespace CAPA_DATOS
 		}
 		// Otros métodos y propiedades existentes
 
-		protected object ExecuteWithRetry(Func<object> operation, int maxRetries = 10)
+		protected object ExecuteWithRetry(Func<object> operation, int maxRetries = 0)
 		{
 			int retries = 0;
 			while (true)

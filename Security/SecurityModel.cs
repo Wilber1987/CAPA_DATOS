@@ -177,12 +177,12 @@ namespace CAPA_DATOS.Security
 
         public object GetUsers()
         {
-            var Security_Users_List = this.Get<Security_Users>();
+            var Security_Users_List = this.Where<Security_Users>(FilterData.Limit(30));
             foreach (Security_Users User in Security_Users_List)
             {
                 User.Security_Users_Roles =
-                    (new Security_Users_Roles()).Get_WhereIN<Security_Users_Roles>(
-                         "Id_User", new string?[] { User.Id_User.ToString() });
+                    new Security_Users_Roles().Get_WhereIN<Security_Users_Roles>(
+                         "Id_User", [User.Id_User.ToString()]);
             }
             return Security_Users_List;
         }

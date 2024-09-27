@@ -374,6 +374,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		*/
         public T? TakeObject<T>(EntityClass Inst, string CondSQL = "", bool isSimpleFind = false)
         {
+            Inst!.filterData!.Add(FilterData.Limit(1));
             // Construye la consulta SELECT utilizando la instancia proporcionada y, opcionalmente, la condición SQL
             (string queryString, string queryCount, List<IDbDataParameter>? parameters) = QueryBuilder.BuildSelectQuery(Inst, CondSQL, isSimpleFind ? 3 : 0);
 

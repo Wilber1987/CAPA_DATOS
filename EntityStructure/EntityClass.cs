@@ -11,8 +11,24 @@ namespace CAPA_DATOS;
 // Clase abstracta base para todas las entidades del sistema
 public abstract class EntityClass : TransactionalClass
 {
+	private List<FilterData>? filters;
 	// Lista de filtros de datos que pueden aplicarse a las consultas de la entidad
-	public List<FilterData>? filterData { get; set; }
+	public List<FilterData>? filterData
+	{
+		get
+		{
+			if (filters == null)
+			{
+				filters = [];
+			}
+			return filters;
+		}
+		set
+		{
+			filters = value;
+		}
+	}
+
 	public List<OrdeData>? orderData { get; set; }
 
 	// Método para obtener una lista de entidades que cumplen cierta condición
@@ -37,7 +53,7 @@ public abstract class EntityClass : TransactionalClass
 	public List<T> Where<T>(params FilterData[] where_condition)
 	{
 		// Verifica si alguna condición de filtro tiene valores nulos o vacíos
-		if (where_condition.Where(c => c.FilterType != "or" 
+		if (where_condition.Where(c => c.FilterType != "or"
 		&& c.FilterType != "and"
 		&& c.FilterType != "Not Null"
 		&& c.FilterType != "NotNull"
@@ -308,11 +324,11 @@ public abstract class EntityClass : TransactionalClass
 			throw;
 		}
 	}
-	
-public int Count(params FilterData[] where_condition)
+
+	public int Count(params FilterData[] where_condition)
 	{
 		// Verifica si alguna condición de filtro tiene valores nulos o vacíos
-		if (where_condition.Where(c => c.FilterType != "or" 
+		if (where_condition.Where(c => c.FilterType != "or"
 		&& c.FilterType != "and"
 		&& c.FilterType != "Not Null"
 		&& c.FilterType != "NotNull"
@@ -414,5 +430,9 @@ public abstract class TransactionalClass
 	public void RollBackGlobalTransaction()
 	{
 		MTConnection?.GDatos.RollBackGlobalTransaction();
+	}
+	public object? ExecuteSqlQuery(string query)
+	{
+		return MTConnection?.GDatos.ExcuteSqlQueryWithOutScalar(query);
 	}
 }

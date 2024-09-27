@@ -127,7 +127,7 @@ public static class NumberUtility
         if (numero < 1 || numero > 30)
             throw new ArgumentOutOfRangeException("El número debe estar entre 1 y 30");
 
-        string[] unidades = { "primero", "segundo", "tercero", "cuarto", "quinto", "sexto", "séptimo", "octavo", "noveno", "décimo" };
+        string[] unidades = { "primer", "segundo", "tercer", "cuarto", "quinto", "sexto", "séptimo", "octavo", "noveno", "décimo" };
         string[] decenas = { "décimo", "vigésimo", "trigésimo" };
 
         if (numero <= 10)
