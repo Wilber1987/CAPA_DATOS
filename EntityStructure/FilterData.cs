@@ -29,6 +29,10 @@ namespace CAPA_DATOS
 		}
 		public static FilterData Equal(string? propName, int? value)
 		{
+			if (value == null)
+			{
+				throw new Exception($"el valor no puede ser null {propName}");
+			}
 			return new FilterData { PropName = propName, FilterType = "=", Values = new List<string?> { value.ToString() } };
 		}
 		public static FilterData Equal(string? propName, object? value)
