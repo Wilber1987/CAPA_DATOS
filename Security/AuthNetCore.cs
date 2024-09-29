@@ -148,11 +148,11 @@ namespace API.Controllers
 		{
 			var security_User = User(identfy).UserData;
 			var isAdmin = security_User?.Security_Users_Roles?.Where(r => RoleHavePermission(Permissions.ADMIN_ACCESS.ToString(), r)?.Count != 0).ToList();
-			if (isAdmin?.Count != 0) return true;
+			if (isAdmin != null && isAdmin?.Count != 0) return true;
 			if (Authenticate(identfy))
 			{
 				var roleHavePermision = security_User?.Security_Users_Roles?.Where(r => RoleHavePermission(permission, r)?.Count != 0).ToList();
-				if (roleHavePermision?.Count != 0) return true;
+				if (roleHavePermision != null && roleHavePermision?.Count != 0) return true;
 				return false;
 			}
 			else
