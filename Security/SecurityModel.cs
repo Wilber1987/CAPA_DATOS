@@ -138,10 +138,10 @@ namespace CAPA_DATOS.Security
                     {
                         throw new Exception("Correo en uso");
                     }
-                    Save();
+                    var user = Save();
                     if (tbl_Profile != null)
                     {
-                        tbl_Profile.IdUser = this.Id_User;
+                        tbl_Profile.IdUser = ((Security_Users?)user)?.Id_User;
                         tbl_Profile.Save();
                     }
 

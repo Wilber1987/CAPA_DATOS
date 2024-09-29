@@ -490,7 +490,8 @@ namespace CAPA_DATOS.BDCore.Abstracts
             {
                 // Si ocurre un error durante el proceso, registra el error y relanza la excepción
                 GDatos?.ReStartData(e);
-                LoggerServices.AddMessageError($"ERROR: BuildTable - {Inst.GetType().Name} - {queryString}", e);
+               string cadenaCompleta = string.Join(Environment.NewLine, parameters.Select(p => $"{p.ParameterName} = {p.Value}"));
+                LoggerServices.AddMessageError($"ERROR: BuildTable \n\n {Inst.GetType().Name} \n\n {cadenaCompleta} \n {queryString}", e);
                 throw;
             }
         }

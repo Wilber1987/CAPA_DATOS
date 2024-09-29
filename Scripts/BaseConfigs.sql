@@ -27,7 +27,7 @@ CREATE SCHEMA [security];
 
 CREATE TABLE [security].Security_Permissions (
 	Id_Permission int IDENTITY(1,1) NOT NULL,
-	Descripcion nvarchar(100) COLLATE Modern_Spanish_CI_AS NULL,
+	Descripcion nvarchar(200) COLLATE Modern_Spanish_CI_AS NULL,
 	Estado nvarchar(50) COLLATE Modern_Spanish_CI_AS NULL,
 	CONSTRAINT PK_Security_Permissions PRIMARY KEY (Id_Permission)
 );
