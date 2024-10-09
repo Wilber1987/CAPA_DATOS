@@ -83,6 +83,7 @@ namespace CAPA_DATOS
 				// Aquí puedes decidir cómo manejar esto. Quizás enviar a otro almacenamiento o un log de emergencia.
 				Console.WriteLine("Failed to log error to the database: " + logEx.Message);
 				// También podría escribir este error a un archivo de log como alternativa.
+				LogErrorToFile("Failed to log true error to file", ex);
 				LogErrorToFile("Failed to log error to the database", logEx);
 			}
 		}

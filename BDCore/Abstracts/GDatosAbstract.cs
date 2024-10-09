@@ -132,6 +132,7 @@ namespace CAPA_DATOS
 		}
 		public void BeginGlobalTransaction()
 		{
+			if (this.globalTransaction) { return; }//TODO ELIMINAR DESPUES
 			this.globalTransaction = true;
 			this.MTConnection = null;
 			this.MTConnection = SQLMCon;
