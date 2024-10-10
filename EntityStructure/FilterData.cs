@@ -10,6 +10,10 @@ namespace CAPA_DATOS
 		{
 			return new FilterData { PropName = propName, FilterType = "in", Values = values.Select(v => v?.ToString()).ToList() };
 		}
+		public static FilterData In(string? propName, params int[] values)
+		{
+			return new FilterData { PropName = propName, FilterType = "in", Values = values.Select(v => v.ToString()).ToList() };
+		}
 		public static FilterData In(string? propName, params int?[] values)
 		{
 			return new FilterData { PropName = propName, FilterType = "in", Values = values.Select(v => v.GetValueOrDefault().ToString()).ToList() };
@@ -124,14 +128,14 @@ namespace CAPA_DATOS
 			return new FilterData { PropName = propName, FilterType = "BETWEEN", Values = new List<string?> { value.ToString(), value2.ToString() } };
 		}
 		public static FilterData ISNull(string propName)
-        {
-            return new FilterData { PropName = propName, FilterType = "IsNull" };
-        }
+		{
+			return new FilterData { PropName = propName, FilterType = "IsNull" };
+		}
 		
-        public static FilterData NotNull(string propName)
-        {
-            return new FilterData { PropName = propName, FilterType = "NotNull" };
-        }
+		public static FilterData NotNull(string propName)
+		{
+			return new FilterData { PropName = propName, FilterType = "NotNull" };
+		}
 		/*Concatenaciones*/
 		public static FilterData Or(params FilterData[] where_condition)
 		{
@@ -160,7 +164,7 @@ namespace CAPA_DATOS
 			return new FilterData { FilterType = "limit", Values = new List<string?> { value.ToString() } };
 		}
 
-    }
+	}
 	public class OrdeData
 	{
 		public string? PropName { get; set; }
