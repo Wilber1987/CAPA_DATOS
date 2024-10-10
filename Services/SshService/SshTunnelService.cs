@@ -8,10 +8,11 @@ public class SshTunnelService
     private ForwardedPortLocal _forwardedPort;
     private readonly IConfigurationRoot _configuration;
 
-    public SshTunnelService()
+    public SshTunnelService(/*IConfigurationRoot config*/)
     {
         // Cargar las configuraciones automáticamente al crear la instancia
         _configuration = LoadConfiguration();
+        //_configuration = config;
     }
 
     private IConfigurationRoot LoadConfiguration()
