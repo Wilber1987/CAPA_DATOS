@@ -345,7 +345,9 @@ namespace CAPA_DATOS.BDCore.Abstracts
 						IDbDataParameter parameter1 = CreateParameter(paramName, filter.Values[0], EntityProp?.DATA_TYPE, prop);
 						parameters.Add(parameter1);
 						CondicionString += $" {AtributeName}  {filter.FilterType}  {paramName} ";
-					}
+					}/*else{
+						throw new Exception($"El filtro no se puede implementar porque la propiedad {filter?.PropName} no existe en :  (todo mostrar nombre de tabla)");//todo incluir el nombre de la tabla
+					}*/
 					break;
 			}
 			if (CondicionString == "")
