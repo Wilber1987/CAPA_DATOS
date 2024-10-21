@@ -41,7 +41,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		public (string?, List<IDbDataParameter>?) BuildUpdateQueryByObject(EntityClass Inst, string[] WhereProps)
 		{
 			// Nombre de la tabla basado en el tipo de clase de entidad
-			string TableName = Inst.GetType().Name;
+			string TableName = Inst.GetType().Name.ToLower();
 
 			// Cadena para almacenar los valores a actualizar
 			string Values = "";
@@ -98,7 +98,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 			}
 
 			// Construir la consulta de actualización
-			string strQuery = "UPDATE  " + entityProps[0].TABLE_SCHEMA + "." + TableName + " SET " + Values + Conditions;
+			string strQuery = "UPDATE  " + entityProps[0].TABLE_SCHEMA + "." + TableName.ToLower() + " SET " + Values + Conditions;
 			//LoggerServices.AddMessageInfo(strQuery);
 
 			return (strQuery, parameters);
@@ -170,7 +170,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 			}
 
 			// Construye la consulta INSERT completa, incluyendo la obtención del identificador insertado (SCOPE_IDENTITY)
-			string QUERY = $"INSERT INTO {entityProps[0].TABLE_SCHEMA}.{Inst.GetType().Name} ({ColumnNames}) VALUES({Values}) SELECT SCOPE_IDENTITY()";
+			string QUERY = $"INSERT INTO {entityProps[0].TABLE_SCHEMA}.{Inst.GetType().Name.ToLower()} ({ColumnNames}) VALUES({Values}) SELECT SCOPE_IDENTITY()";
 
 			// Registra un mensaje de información con la consulta construida
 			//LoggerServices.AddMessageInfo(QUERY);
@@ -181,7 +181,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		public (string?, List<IDbDataParameter>?) BuildDeleteQuery(EntityClass Inst)
 		{
 			//TODO VALIDAR BIEN, validar filterdata y OrderData!!
-			string TableName = Inst.GetType().Name;
+			string TableName = Inst.GetType().Name.ToLower();
 			string CondicionString = "";
 			Type _type = Inst.GetType();
 			PropertyInfo[] lst = _type.GetProperties();
@@ -201,7 +201,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 
 			}
 			CondicionString = CondicionString.TrimEnd(new char[] { '0', 'R' });
-			string strQuery = "DELETE FROM  " + entityProps[0].TABLE_SCHEMA + "." + TableName + CondicionString;
+			string strQuery = "DELETE FROM  " + entityProps[0].TABLE_SCHEMA + "." + TableName.ToLower() + CondicionString;
 			//LoggerServices.AddMessageInfo(strQuery);
 			return (strQuery, parameters);
 		}
@@ -369,7 +369,9 @@ namespace CAPA_DATOS.BDCore.Abstracts
 						IDbDataParameter parameter1 = CreateParameter(paramName, filter.Values[0], EntityProp?.DATA_TYPE, prop);
 						parameters.Add(parameter1);
 						CondicionString += $" {AtributeName}  {filter.FilterType}  {paramName} ";
-					}
+					}/*else{
+						throw new Exception($"El filtro no se puede implementar porque la propiedad {filter?.PropName} no existe en :  (todo mostrar nombre de tabla)");//todo incluir el nombre de la tabla
+					}*/
 					break;
 			}
 			if (CondicionString == "")
