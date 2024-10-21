@@ -35,7 +35,7 @@ public abstract class EntityClass : TransactionalClass
 	public List<T> Get<T>(string condition = "")
 	{
 		// Llama al método TakeList de MTConnection para obtener datos
-		var Data = MTConnection?.TakeList<T>(this, true, condition);
+		var Data = MTConnection?.TakeList<T>(this, condition);
 		// Retorna los datos obtenidos o una lista vacía si es nulo
 		return Data.ToList() ?? new List<T>();
 	}
@@ -44,7 +44,7 @@ public abstract class EntityClass : TransactionalClass
 	public List<T> GetAll<T>()
 	{
 		// Llama al método TakeList de MTConnection sin condiciones para obtener todos los datos
-		var Data = MTConnection?.TakeList<T>(this, true);
+		var Data = MTConnection?.TakeList<T>(this);
 		// Retorna los datos obtenidos o una lista vacía si es nulo
 		return Data.ToList() ?? new List<T>();
 	}
@@ -72,7 +72,7 @@ public abstract class EntityClass : TransactionalClass
 		filterData.AddRange(where_condition.ToList());
 
 		// Se obtienen los datos utilizando el filtro actualizado
-		var Data = MTConnection?.TakeList<T>(this, true);
+		var Data = MTConnection?.TakeList<T>(this);
 		// Retorna los datos obtenidos o una lista vacía si es nulo
 		return Data ?? new List<T>();
 	}
@@ -83,7 +83,7 @@ public abstract class EntityClass : TransactionalClass
 		// Construye una condición IN a partir de los valores proporcionados
 		string condition = BuildArrayIN(conditions);
 		// Obtiene los datos utilizando la condición IN especificada
-		var Data = MTConnection?.TakeList<T>(this, true, Field + " IN (" + condition + ")");
+		var Data = MTConnection?.TakeList<T>(this,  Field + " IN (" + condition + ")");
 		// Retorna los datos obtenidos o una lista vacía si es nulo
 		return Data ?? new List<T>();
 	}
@@ -94,7 +94,7 @@ public abstract class EntityClass : TransactionalClass
 		// Construye una condición NOT IN a partir de los valores proporcionados
 		string condition = BuildArrayIN(conditions);
 		// Obtiene los datos utilizando la condición NOT IN especificada
-		var Data = MTConnection?.TakeList<T>(this, true, Field + " NOT IN (" + condition + ")");
+		var Data = MTConnection?.TakeList<T>(this,  Field + " NOT IN (" + condition + ")");
 		// Retorna los datos obtenidos o una lista vacía si es nulo
 		return Data ?? new List<T>();
 	}
@@ -124,7 +124,7 @@ public abstract class EntityClass : TransactionalClass
 	public Boolean Exists<T>()
 	{
 		// Obtiene los datos utilizando la entidad actual
-		var Data = MTConnection?.TakeList<T>(this, true);
+		var Data = MTConnection?.TakeList<T>(this, "", true);
 		// Retorna true si se encuentran datos, false si no se encuentran
 		return Data?.Count > 0;
 	}
@@ -160,7 +160,7 @@ public abstract class EntityClass : TransactionalClass
 	public List<T> SimpleGet<T>()
 	{
 		// Obtiene los datos sin aplicar transacción
-		var Data = MTConnection?.TakeList<T>(this, false);
+		var Data = MTConnection?.TakeList<T>(this, "", true);
 		// Retorna los datos obtenidos o una lista vacía si es nulo
 		return Data ?? new List<T>();
 	}

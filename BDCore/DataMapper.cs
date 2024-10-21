@@ -343,10 +343,10 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		la tabla de datos y la conversión a objetos se realizan utilizando otros métodos internos
 		(BuildTable y AdapterUtil.ConvertDataTable). La condición SQL opcional proporciona flexibilidad 
 		para filtrar los resultados según sea necesario.*/
-        public List<T> TakeList<T>(EntityClass Inst, bool fullEntity, string CondSQL = "")
+        public List<T> TakeList<T>(EntityClass Inst, string CondSQL = "", bool isSimpleFind = false)
         {
             // Construye una tabla de datos utilizando la instancia proporcionada y, opcionalmente, la condición SQL
-            DataTable? Table = BuildTable(Inst, ref CondSQL, fullEntity, false);
+            DataTable? Table = BuildTable(Inst, ref CondSQL, isSimpleFind);
 
             // Convierte la tabla de datos en una lista de objetos del tipo T
             List<T> ListD = AdapterUtil.ConvertDataTable<T>(Table, Inst);
@@ -474,10 +474,10 @@ namespace CAPA_DATOS.BDCore.Abstracts
         }
         /*Solo lo usa Elvis*/
 
-        public DataTable? BuildTable(EntityClass Inst, ref string CondSQL, bool fullEntity = true, bool isFind = true)
+        public DataTable? BuildTable(EntityClass Inst, ref string CondSQL, bool isSimpleFind = false)
         {
             // Construye la consulta SELECT utilizando la instancia proporcionada y, opcionalmente, la condición SQL
-            (string queryString, string queryCount, List<IDbDataParameter>? parameters) = QueryBuilder.BuildSelectQuery(Inst, CondSQL);
+            (string queryString, string queryCount, List<IDbDataParameter>? parameters) = QueryBuilder.BuildSelectQuery(Inst, CondSQL, isSimpleFind ? 3 : 0);
 
             try
             {
