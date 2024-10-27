@@ -87,7 +87,7 @@ namespace CAPA_DATOS
 						? GetJsonValue(columnValue, property.PropertyType)
 						: GetValue(columnValue, property.PropertyType);
 				try
-				{					
+				{
 					property.SetValue(obj, value);
 				}
 				catch (System.Exception ex)
@@ -97,6 +97,29 @@ namespace CAPA_DATOS
 			}
 
 			return obj;
+		}
+		public static void SetMatchingProperties(object source, object target)
+		{
+			if (source == null) throw new ArgumentNullException(nameof(source));
+			if (target == null) throw new ArgumentNullException(nameof(target));
+
+			// Obtenemos las propiedades del objeto fuente y del objeto destino
+			var sourceProperties = source.GetType().GetProperties();
+			var targetProperties = target.GetType().GetProperties();
+
+			foreach (var targetProp in targetProperties)
+			{
+				// Buscamos si hay una propiedad en "source" con el mismo nombre y tipo que la propiedad de "target"
+				var matchingProp = Array.Find(sourceProperties, p =>
+					p.Name == targetProp.Name && p.PropertyType == targetProp.PropertyType);
+
+				// Si encontramos una propiedad coincidente y es asignable, copiamos el valor
+				if (matchingProp != null && matchingProp.CanRead && targetProp.CanWrite)
+				{
+					var value = matchingProp.GetValue(source);
+					targetProp.SetValue(target, value);
+				}
+			}
 		}
 	}
 }

@@ -215,7 +215,7 @@ public abstract class EntityClass : TransactionalClass
 	}
 
 	// Método para actualizar una entidad en la base de datos
-	public object? Update()
+	public ResponseService Update()
 	{
 		try
 		{

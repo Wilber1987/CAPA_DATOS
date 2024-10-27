@@ -37,9 +37,22 @@ namespace API.Controllers
 					Password = EncrypterServices.Encrypt(password)
 				}.GetUserData();
 				if (security_User == null) ClearSeason();
+				if (security_User?.Password_Expiration_Date != null && security_User?.Password_Expiration_Date < DateTime.Now)
+				{
+					return new UserModel()
+					{
+						success = false,
+						message = "Password o usuario expirado.",
+						status = 403
+					};
+				}
+
 				SeasonServices.Set("loginIn", security_User, idetify);
+
 				var user = User(idetify);
+
 				user.UserData = null;
+
 				return user;
 			}
 			catch (Exception ex)
@@ -221,8 +234,8 @@ namespace API.Controllers
 				{
 					return true;
 				}
-			}	
-			return false;		
+			}
+			return false;
 		}
 	}
 	public class UserModel
