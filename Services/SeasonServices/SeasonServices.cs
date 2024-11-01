@@ -13,9 +13,9 @@ namespace CAPA_DATOS.Services
     public class SeasonServices
     {
         public static List<SeassonData> SeassonDatas = new List<SeassonData>();
-        public static void Set(string key, Object value, string identfy)
+        public static void Set(string key, Object value, string seassonKey)
         {
-            var find = SeassonDatas.Find(x => x.KeyName.Equals(key) && x.idetify.Equals(identfy));
+            var find = SeassonDatas.Find(x => x.KeyName.Equals(key) && x.idetify.Equals(seassonKey));
             if (find != null)
             {
                 SeassonDatas.Remove(find);
@@ -25,7 +25,7 @@ namespace CAPA_DATOS.Services
                 KeyName = key,
                 Value = System.Text.Json.JsonSerializer.Serialize(value),
                 created = DateTime.Now,
-                idetify = identfy
+                idetify = seassonKey
             });
         }
 

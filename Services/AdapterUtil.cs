@@ -26,7 +26,10 @@ namespace CAPA_DATOS
 			if (defaultValue is string literal && !string.IsNullOrEmpty(literal))
 			{
 				try { return JsonConvert.DeserializeObject(literal, type); }
-				catch { }
+				catch (Exception ex) {
+					Console.WriteLine(defaultValue);
+					Console.WriteLine(ex.Message);	
+				}
 			}
 			return null;
 		}
@@ -98,6 +101,15 @@ namespace CAPA_DATOS
 
 			return obj;
 		}
+		/// <summary>
+		/// Copia los valores de las propiedades con el mismo nombre y tipo en dos objetos.
+		/// </summary>
+		/// <param name="source">El objeto que contiene los valores a copiar.</param>
+		/// <param name="target">El objeto que recibira los valores copiados.</param>
+		/// <remarks>
+		/// Las propiedades se buscan por nombre y tipo, por lo que la copia es case-insensitive.
+		/// Solo se copian las propiedades que tengan un setter y getter publicos.
+		/// </remarks>
 		public static void SetMatchingProperties(object source, object target)
 		{
 			if (source == null) throw new ArgumentNullException(nameof(source));

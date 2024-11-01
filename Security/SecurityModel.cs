@@ -215,9 +215,9 @@ namespace CAPA_DATOS.Security
 			return null;
 		}
 
-		public object? changePassword(string? identfy)
+		public object? changePassword(string? seassonKey)
 		{
-			var security_User = AuthNetCore.User(identfy).UserData;
+			var security_User = AuthNetCore.User(seassonKey).UserData;
 			Password = EncrypterServices.Encrypt(Password);
 			Id_User = security_User?.Id_User;
 			return Update();
