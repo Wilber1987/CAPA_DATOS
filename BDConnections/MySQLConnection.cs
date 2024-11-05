@@ -66,9 +66,9 @@ public class MySQLConnection
                 string SWGBD_PASSWORD,
                 string BDNAME,
                 int Port = 3306,
-                string sshHostName = null,
-                string sshUserName = null,
-                string sshPassword = null,
+                string? sshHostName = null,
+                string? sshUserName = null,
+                string? sshPassword = null,
                 int sshHostPort = 0
     )
     {
