@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using CAPA_DATOS.BDCore;
-using CAPA_DATOS.BDCore.Abstracts;
+﻿using CAPA_DATOS.BDCore.Abstracts;
 using CAPA_DATOS.BDCore.MySqlImplementations;
 using CAPA_DATOS.MySqlImplementations;
-using CAPA_DATOS.PostgresImplementations;
-using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using Renci.SshNet;
 
