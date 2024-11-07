@@ -8,31 +8,34 @@ using CAPA_DATOS;
 namespace CAPA_DATOS.Security
 {
     public class EncrypterServices
-    {      
-       
+    {
+
         private static Aes myAes = Aes.Create();
-        public static void myAesConfig(){
+        public static void myAesConfig()
+        {
             myAes.IV = Encoding.ASCII.GetBytes("HR$2pIjHR$2pIj12");
             myAes.Key = Encoding.ASCII.GetBytes("HR$2pIjHR$2pIj13");
         }
-        static public String Encrypt(string chain)
+        static public string Encrypt(string chain)
         {
             myAesConfig();
-            // Encrypt the string to an array of bytes.
+            // Encriptar la cadena en un arreglo de bytes usando AES
             byte[] encrypted = EncryptStringToBytes_Aes(chain, myAes.Key, myAes.IV);
-            var encript = Encoding.ASCII.GetString(encrypted);
-            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(encript);
-            return System.Convert.ToBase64String(plainTextBytes);
+
+            // Convertir directamente los bytes encriptados en una cadena Base64
+            return Convert.ToBase64String(encrypted);
         }
-        static public String Decrypt(string chain)
+        static public string Decrypt(string encryptedChain)
         {
-            var base64EncodedBytes = System.Convert.FromBase64String(chain);
-            var textConverter = System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
             myAesConfig();
-            byte[] encrypted = Encoding.ASCII.GetBytes(textConverter);
-            string decrypt = DecryptStringFromBytes_Aes(encrypted, myAes.Key, myAes.IV);
-            return decrypt;
-             
+
+            // Convertir la cadena Base64 de vuelta a un arreglo de bytes
+            byte[] cipherTextBytes = Convert.FromBase64String(encryptedChain);
+
+            // Desencriptar el arreglo de bytes usando AES
+            string decrypted = DecryptStringFromBytes_Aes(cipherTextBytes, myAes.Key, myAes.IV);
+
+            return decrypted;
         }
         static byte[] EncryptStringToBytes_Aes(string plainText, byte[] Key, byte[] IV)
         {
