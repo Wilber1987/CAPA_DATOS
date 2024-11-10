@@ -48,7 +48,7 @@ namespace CAPA_DATOS.Services
 				}
 				string FileType = GetFileType(MimeType);
 				Guid Uuid = Guid.NewGuid();
-				string FileName = Uuid.ToString() + FileType;
+				string FileName = ( Attach?.Name ?? "" ) + Uuid.ToString() + FileType;
 				string FileRoute = Ruta + FileName;
 				File.WriteAllBytes(FileRoute, File64);
 				string RutaRelativa = Path.GetRelativePath(Directory.GetCurrentDirectory(), FileRoute);
