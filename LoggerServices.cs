@@ -50,18 +50,18 @@ namespace CAPA_DATOS
 				// Detecta si el error es un error relacionado con SQL Server.
 				if (ex is SqlException sqlEx)
 				{
-					// Comprobamos los números de error SQL comunes que indican problemas de conexión.
+					/*// Comprobamos los números de error SQL comunes que indican problemas de conexión.
 					// Esta lista puede ser expandida para incluir otros errores específicos de SQL Server.
 					if (sqlEx.Number == -2 ||  // Timeout
 						sqlEx.Number == 53 ||  // Error de conexión (Nombre de servidor incorrecto)
 						sqlEx.Number == 233 || // Error de conexión (SQL Server no permite conexiones)
 						sqlEx.Number == 4060 ||// Error de inicio de sesión en la base de datos
 						sqlEx.Number == 3981 )  
-					{
+					{*/
 						// Es un error de conexión o transacción.
 						LogErrorToFile(message, ex);
 						return;
-					}
+					//}
 				}
 
 				// Si no es un error de conexión o transacción, o si es otro tipo de excepción,

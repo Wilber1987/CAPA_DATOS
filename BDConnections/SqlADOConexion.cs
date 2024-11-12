@@ -20,7 +20,7 @@ public class SqlADOConexion
         {
             SQLM = null;
             //return false;
-            throw new Exception("Error al conectar a base de datos");
+            throw new Exception("Error al conectar a base de datos" , ex);
         }
     }
     private static bool createConexion(string SQLServer, string SGBD_USER, string SWGBD_PASSWORD, string BDNAME)

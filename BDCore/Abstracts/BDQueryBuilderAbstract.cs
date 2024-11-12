@@ -6,7 +6,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 	public abstract class BDQueryBuilderAbstract
 	{
 		public abstract (string queryResults, string queryCount, List<IDbDataParameter>? parameters) BuildSelectQuery(
-			EntityClass Inst, 
+			EntityClass Inst,
 			string CondSQL,
 			int recursionDepth = 0);
 
@@ -41,7 +41,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		public (string?, List<IDbDataParameter>?) BuildUpdateQueryByObject(EntityClass Inst, string[] WhereProps)
 		{
 			// Nombre de la tabla basado en el tipo de clase de entidad
-			string TableName = Inst.GetType().Name;
+			string TableName = Inst.GetType().Name.ToLower();
 
 			// Cadena para almacenar los valores a actualizar
 			string Values = "";
@@ -98,12 +98,12 @@ namespace CAPA_DATOS.BDCore.Abstracts
 			}
 
 			// Construir la consulta de actualización
-			string strQuery = "UPDATE  " + entityProps[0].TABLE_SCHEMA + "." + TableName + " SET " + Values + Conditions;
+			string strQuery = "UPDATE  " + entityProps[0].TABLE_SCHEMA + "." + TableName.ToLower() + " SET " + Values + Conditions;
 			//LoggerServices.AddMessageInfo(strQuery);
 
 			return (strQuery, parameters);
 		}
-		
+
 		public (string?, List<IDbDataParameter>?) BuildUpdateQueryByObject(EntityClass Inst, string IdObject)
 		{
 			return BuildUpdateQueryByObject(Inst, new string[] { IdObject });
@@ -170,7 +170,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 			}
 
 			// Construye la consulta INSERT completa, incluyendo la obtención del identificador insertado (SCOPE_IDENTITY)
-			string QUERY = $"INSERT INTO {entityProps[0].TABLE_SCHEMA}.{Inst.GetType().Name} ({ColumnNames}) VALUES({Values}) SELECT SCOPE_IDENTITY()";
+			string QUERY = $"INSERT INTO {entityProps[0].TABLE_SCHEMA}.{Inst.GetType().Name.ToLower()} ({ColumnNames}) VALUES({Values}) SELECT SCOPE_IDENTITY()";
 
 			// Registra un mensaje de información con la consulta construida
 			//LoggerServices.AddMessageInfo(QUERY);
@@ -181,7 +181,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		public (string?, List<IDbDataParameter>?) BuildDeleteQuery(EntityClass Inst)
 		{
 			//TODO VALIDAR BIEN, validar filterdata y OrderData!!
-			string TableName = Inst.GetType().Name;
+			string TableName = Inst.GetType().Name.ToLower();
 			string CondicionString = "";
 			Type _type = Inst.GetType();
 			PropertyInfo[] lst = _type.GetProperties();
@@ -201,7 +201,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 
 			}
 			CondicionString = CondicionString.TrimEnd(new char[] { '0', 'R' });
-			string strQuery = "DELETE FROM  " + entityProps[0].TABLE_SCHEMA + "." + TableName + CondicionString;
+			string strQuery = "DELETE FROM  " + entityProps[0].TABLE_SCHEMA + "." + TableName.ToLower() + CondicionString;
 			//LoggerServices.AddMessageInfo(strQuery);
 			return (strQuery, parameters);
 		}
@@ -238,7 +238,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 		}
 		/*Este método construye una condición SQL basada en el filtro proporcionado y el tipo de datos de la propiedad.
 		Los comentarios explican cada sección del código y su propósito.*/
-		protected string SetFilterValueCondition(PropertyInfo[] props, FilterData filter, 
+		protected string SetFilterValueCondition(PropertyInfo[] props, FilterData filter,
 		List<IDbDataParameter> parameters, List<EntityProps> entityProps)
 		{
 			string CondicionString = ""; // String donde se construirá la condición SQL
@@ -247,6 +247,8 @@ namespace CAPA_DATOS.BDCore.Abstracts
 			string AtributeName = ""; // Nombre de la propiedad
 			var EntityProp = entityProps.Find(e => e.COLUMN_NAME.ToLower().ToLower() == filter?.PropName?.ToLower());
 
+			// Si el filtro es LIKE y el campo es un JSON
+			JsonProp? jsonPropAttribute = null;
 
 			// Verifica si la propiedad existe
 			if (prop != null)
@@ -270,11 +272,11 @@ namespace CAPA_DATOS.BDCore.Abstracts
 							string condition = SetFilterValueCondition(props, f, parameters, entityProps);
 							if (condition.Length > 0)
 							{
-								CondicionString += $" { (index == 0 ? "(" :filter.FilterType)} {condition}";
+								CondicionString += $" {(index == 0 ? "(" : filter.FilterType)} {condition}";
 							}
-							index ++;
+							index++;
 						});
-						 CondicionString += ") ";
+						CondicionString += ") ";
 					}
 					break;
 				case "BETWEEN":
@@ -325,17 +327,39 @@ namespace CAPA_DATOS.BDCore.Abstracts
 						CondicionString += $" {AtributeName}  LIKE  '%' + {paramName} + '%' ";
 					}
 					break;
-				case "NOTNULL": case "NOT NULL":
+				case "NOTNULL":
+				case "NOT NULL":
 					if (EntityProp != null)
-					{						
+					{
 						CondicionString += $" {AtributeName} IS NOT NULL ";
-					}							
+					}
 					break;
-				case "ISNULL": case "IS NULL":
+				case "ISNULL":
+				case "IS NULL":
 					if (EntityProp != null)
-					{						
+					{
 						CondicionString += $" {AtributeName}  IS NULL ";
-					}							
+					}
+					break;
+				case "JSONPROP_EQUAL":
+					PropertyInfo? propJSON = props.ToList().Find(p => p.Name.ToLower().Equals(filter?.ObjectName?.ToLower())); // Obtiene la propiedad correspondiente al nombre proporcionado en el filtro
+					if (propJSON != null)
+					{
+						AtributeName = propJSON.Name;						
+						jsonPropAttribute = (JsonProp?)Attribute.GetCustomAttribute(propJSON, typeof(JsonProp));
+						if (filter?.Values?.Count > 0 && jsonPropAttribute != null)
+						{
+							string paramName = $"@{AtributeName}_{parameters.Count + 1}";
+							IDbDataParameter parameter1 = CreateParameter(paramName, filter.Values[0], filter.PropSQLType, prop);
+							parameters.Add(parameter1);
+							// Construimos la condición con JSON_VALUE
+							CondicionString += $" JSON_VALUE({AtributeName}, '$.{filter.PropName}') = {paramName} ";
+						} 
+						else 
+						{
+							throw new Exception($"el valor no puede ser null y debe existir en la entidad con el atributo JsonProp {filter?.ObjectName}");
+						}
+					}
 					break;
 				default:
 					// Para otros tipos de filtro, construye una condición de comparación simple
@@ -345,7 +369,9 @@ namespace CAPA_DATOS.BDCore.Abstracts
 						IDbDataParameter parameter1 = CreateParameter(paramName, filter.Values[0], EntityProp?.DATA_TYPE, prop);
 						parameters.Add(parameter1);
 						CondicionString += $" {AtributeName}  {filter.FilterType}  {paramName} ";
-					}
+					}/*else{
+						throw new Exception($"El filtro no se puede implementar porque la propiedad {filter?.PropName} no existe en :  (todo mostrar nombre de tabla)");//todo incluir el nombre de la tabla
+					}*/
 					break;
 			}
 			if (CondicionString == "")
@@ -398,7 +424,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 
 			return CondicionString;
 		}
-		
+
 		public void DeleteInnecesaryCharacters(string CondSQL, ref string CondicionString, ref string Columns)
 		{
 
@@ -418,7 +444,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 			// Eliminar la coma final de la lista de columnas
 			Columns = Columns.TrimEnd(',');
 		}
-		public  string SetOrderByData(EntityClass Inst,  PropertyInfo? primaryKeyPropierty, string queryString)
+		public string SetOrderByData(EntityClass Inst, PropertyInfo? primaryKeyPropierty, string queryString)
 		{
 			// Obtener las órdenes de filtro			
 			var filterOrders = Inst?.orderData?.Where(f => f.PropName != null &&

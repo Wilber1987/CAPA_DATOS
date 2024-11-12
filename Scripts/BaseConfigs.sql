@@ -63,6 +63,7 @@ CREATE TABLE [security].Security_Users (
 	Token nvarchar(500) COLLATE Modern_Spanish_CI_AS NULL,
 	Token_Date datetime NULL,
 	Token_Expiration_Date datetime NULL,
+	Password_Expiration_Date datetime NULL,
 	CONSTRAINT PK_Security_Users PRIMARY KEY (Id_User)
 );
 

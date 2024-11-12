@@ -26,7 +26,10 @@ namespace CAPA_DATOS
 			if (defaultValue is string literal && !string.IsNullOrEmpty(literal))
 			{
 				try { return JsonConvert.DeserializeObject(literal, type); }
-				catch { }
+				catch (Exception ex) {
+					Console.WriteLine(defaultValue);
+					Console.WriteLine(ex.Message);	
+				}
 			}
 			return null;
 		}
@@ -87,7 +90,7 @@ namespace CAPA_DATOS
 						? GetJsonValue(columnValue, property.PropertyType)
 						: GetValue(columnValue, property.PropertyType);
 				try
-				{					
+				{
 					property.SetValue(obj, value);
 				}
 				catch (System.Exception ex)
@@ -97,6 +100,38 @@ namespace CAPA_DATOS
 			}
 
 			return obj;
+		}
+		/// <summary>
+		/// Copia los valores de las propiedades con el mismo nombre y tipo en dos objetos.
+		/// </summary>
+		/// <param name="source">El objeto que contiene los valores a copiar.</param>
+		/// <param name="target">El objeto que recibira los valores copiados.</param>
+		/// <remarks>
+		/// Las propiedades se buscan por nombre y tipo, por lo que la copia es case-insensitive.
+		/// Solo se copian las propiedades que tengan un setter y getter publicos.
+		/// </remarks>
+		public static void SetMatchingProperties(object source, object target)
+		{
+			if (source == null) throw new ArgumentNullException(nameof(source));
+			if (target == null) throw new ArgumentNullException(nameof(target));
+
+			// Obtenemos las propiedades del objeto fuente y del objeto destino
+			var sourceProperties = source.GetType().GetProperties();
+			var targetProperties = target.GetType().GetProperties();
+
+			foreach (var targetProp in targetProperties)
+			{
+				// Buscamos si hay una propiedad en "source" con el mismo nombre y tipo que la propiedad de "target"
+				var matchingProp = Array.Find(sourceProperties, p =>
+					p.Name == targetProp.Name && p.PropertyType == targetProp.PropertyType);
+
+				// Si encontramos una propiedad coincidente y es asignable, copiamos el valor
+				if (matchingProp != null && matchingProp.CanRead && targetProp.CanWrite)
+				{
+					var value = matchingProp.GetValue(source);
+					targetProp.SetValue(target, value);
+				}
+			}
 		}
 	}
 }

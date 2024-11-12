@@ -2,7 +2,10 @@ namespace CAPA_DATOS
 {
 	public class FilterData
 	{
+		public string? ObjectName { get; set; }//nombre del objeto o identidad, actalmente solo es util para json querys
 		public string? PropName { get; set; }
+		public string? PropSQLType { get; set; }//tipo de la propiedad del objeto o identidad, actalmente solo es util para json querys
+
 		public string? FilterType { get; set; }
 		public List<FilterData>? Filters { get; set; }
 		public List<String?>? Values { get; set; }

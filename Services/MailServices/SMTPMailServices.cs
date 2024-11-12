@@ -53,7 +53,7 @@ namespace CAPA_DATOS.Services
 					string? mail = obtainMail(m);
 					message.To.Add(new MailboxAddress("-", mail));
 				});
-				message.From.Add(new MailboxAddress("Soporte", mailConfig.USERNAME));
+				message.From.Add(new MailboxAddress("PORTAL CCA", mailConfig.USERNAME));
 
 				message.Subject = subject;
 				if (uid != null)
@@ -153,7 +153,7 @@ namespace CAPA_DATOS.Services
 			{
 				//var templatePage = Path.Combine(System.IO.Path.GetFullPath("../UI/Pages/Mails"), path);
 				MailMessage correo = new MailMessage();
-				correo.From = new MailAddress(config.USERNAME, "Soporte", System.Text.Encoding.UTF8);//Correo de salida
+				correo.From = new MailAddress(config.USERNAME, "PORTAL CCA", System.Text.Encoding.UTF8);//Correo de salida
 				if (toMails == null || toMails.Count == 0)
 				{
 					return false;

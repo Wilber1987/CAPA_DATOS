@@ -37,9 +37,22 @@ namespace API.Controllers
 					Password = EncrypterServices.Encrypt(password)
 				}.GetUserData();
 				if (security_User == null) ClearSeason();
+				if (security_User?.Password_Expiration_Date != null && security_User?.Password_Expiration_Date < DateTime.Now)
+				{
+					return new UserModel()
+					{
+						success = false,
+						message = "Password o usuario expirado.",
+						status = 403
+					};
+				}
+
 				SeasonServices.Set("loginIn", security_User, idetify);
+
 				var user = User(idetify);
+
 				user.UserData = null;
+
 				return user;
 			}
 			catch (Exception ex)
@@ -61,10 +74,10 @@ namespace API.Controllers
 			return true;
 
 		}
-		public static UserModel User(string identfy)
+		public static UserModel User(string seassonKey)
 		{
 			var security_User = SeasonServices
-				.Get<Security_Users>("loginIn", identfy);
+				.Get<Security_Users>("loginIn", seassonKey);
 			if (security_User != null)
 			{
 				List<string> list = new List<string>() { };
@@ -103,7 +116,7 @@ namespace API.Controllers
 		public static UserModel User()
 		{
 			var security_User = SeasonServices
-				.Get<Security_Users>("loginIn", "identfy");
+				.Get<Security_Users>("loginIn", "seassonKey");
 			if (security_User != null)
 			{
 				return new UserModel()
@@ -130,10 +143,10 @@ namespace API.Controllers
 				};
 			}
 		}
-		public static bool HaveRole(string role, string identfy)
+		public static bool HaveRole(string role, string seassonKey)
 		{
-			var security_User = User(identfy).UserData;
-			if (Authenticate(identfy))
+			var security_User = User(seassonKey).UserData;
+			if (Authenticate(seassonKey))
 			{
 				var AdminRole = security_User?.Security_Users_Roles?.Where(r => r?.Security_Role?.Descripcion == role).ToList();
 				if (AdminRole?.Count != 0) return true;
@@ -144,12 +157,12 @@ namespace API.Controllers
 				return false;
 			}
 		}
-		public static bool HavePermission(string permission, string identfy)
+		public static bool HavePermission(string permission, string seassonKey)
 		{
-			var security_User = User(identfy).UserData;
+			var security_User = User(seassonKey).UserData;
 			var isAdmin = security_User?.Security_Users_Roles?.Where(r => RoleHavePermission(Permissions.ADMIN_ACCESS.ToString(), r)?.Count != 0).ToList();
 			if (isAdmin != null && isAdmin?.Count != 0) return true;
-			if (Authenticate(identfy))
+			if (Authenticate(seassonKey))
 			{
 				var roleHavePermision = security_User?.Security_Users_Roles?.Where(r => RoleHavePermission(permission, r)?.Count != 0).ToList();
 				if (roleHavePermision != null && roleHavePermision?.Count != 0) return true;
@@ -221,8 +234,8 @@ namespace API.Controllers
 				{
 					return true;
 				}
-			}	
-			return false;		
+			}
+			return false;
 		}
 	}
 	public class UserModel

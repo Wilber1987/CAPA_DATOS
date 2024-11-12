@@ -1,5 +1,14 @@
+
 using System.Text.RegularExpressions;
 using MimeKit;
+using System;
+using System.IO;
+using System.Text;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using iTextSharp.text.html.simpleparser;
+using iTextSharp.tool.xml;
+
 
 namespace CAPA_DATOS.Services
 {
@@ -31,15 +40,15 @@ namespace CAPA_DATOS.Services
 				}
 
 				byte[] File64 = Convert.FromBase64String(Attach.Value);
-				string[] extension = Attach.Type.Split(new string[] { "data:" }, StringSplitOptions.RemoveEmptyEntries);
+				string[]? extension = Attach?.Type?.Split(new string[] { "data:" }, StringSplitOptions.RemoveEmptyEntries);
 				string MimeType = "";
-				if (extension.Length > 0)
+				if (extension?.Length > 0)
 				{
 					MimeType = extension[0];
 				}
 				string FileType = GetFileType(MimeType);
 				Guid Uuid = Guid.NewGuid();
-				string FileName = Uuid.ToString() + FileType;
+				string FileName = ( Attach?.Name ?? "" ) + Uuid.ToString() + FileType;
 				string FileRoute = Ruta + FileName;
 				File.WriteAllBytes(FileRoute, File64);
 				string RutaRelativa = Path.GetRelativePath(Directory.GetCurrentDirectory(), FileRoute);
@@ -151,6 +160,45 @@ namespace CAPA_DATOS.Services
 		}
 
 
+		public static ModelFiles HtmlToPdfBase64(string htmlString, string fileName)
+		{
+			using (MemoryStream memoryStream = new MemoryStream())
+			{
+				// Crear un documento y un escritor de PDF
+			Document document = new Document();
+			PdfWriter writer = PdfWriter.GetInstance(document, memoryStream);
+
+			// Abrir el documento
+			document.Open();
+
+			// Usar XMLWorkerHelper para procesar el HTML
+			using (StringReader sr = new StringReader(htmlString))
+			{
+				XMLWorkerHelper.GetInstance().ParseXHtml(writer, document, sr);
+			}
+
+			// Cerrar el documento
+			document.Close();
+
+			// Obtener los bytes del PDF
+			byte[] pdfBytes = memoryStream.ToArray();
+
+			// Codificar el PDF en base64
+			string base64EncodedPdf = Convert.ToBase64String(pdfBytes);
+
+				// Mostrar la cadena codificada en base64
+				//Console.WriteLine("PDF codificado en base64:");
+				//Console.WriteLine(base64EncodedPdf);
+				
+				return new ModelFiles
+				{
+					Value = base64EncodedPdf,
+					Name = fileName ?? Guid.NewGuid().ToString() + ".pdf",
+					Type = "pdf"
+				};
+				// Aquí puedes usar base64EncodedPdf para enviar el PDF por correo
+			}
+		}
 
 		public static string GetFileType(string mimeType)
 		{
@@ -173,7 +221,7 @@ namespace CAPA_DATOS.Services
 				{ "docx", ".docx" }
 			};
 
-			if (TypeFile.TryGetValue(mimeType, out string Type))
+			if (TypeFile.TryGetValue(mimeType, out string? Type))
 			{
 				return Type;
 			}
@@ -204,9 +252,9 @@ namespace CAPA_DATOS.Services
 			// Si no hay coincidencia, simplemente devolvemos la cadena original
 			return input;
 		}
-		public static string setImage(string image)
+		public static string? setImage(string image)
 		{
-			return ((ModelFiles)FileService.upload("image_tests\\", new ModelFiles { Type = "png", Value = image, Name = "" }).body).Value.Replace("wwwroot", "");
+			return ((ModelFiles?)FileService.upload("image_tests\\", new ModelFiles { Type = "png", Value = image, Name = "" })?.body)?.Value?.Replace("wwwroot", "");
 		}
 	}
 
