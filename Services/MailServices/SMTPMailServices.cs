@@ -18,10 +18,32 @@ namespace CAPA_DATOS.Services
 	{
 		const string USERNAME = "wdevexp@outlook.com";
 		const string PASSWORD = "%WtestDev2023%1";
-		//const string USERNAME = "amejia@ximtechnology.onmicrosoft.com";
-		//const string PASSWORD = "%3e2w1qazsX";
 		const string HOST = "smtp-mail.outlook.com";
 		const int PORT = 587;
+		
+		public static MailConfig Config = new MailConfig() { HOST = HOST, PASSWORD = PASSWORD, USERNAME = USERNAME , AutenticationType = AutenticationTypeEnum.BASIC };
+
+		public async static Task<bool> SendMail(string from,
+		   List<string> toMails,
+		   string subject,
+		   string body,
+		   List<ModelFiles>? attach,
+		   string? uid,
+		   MailConfig? config)
+		{
+			if (config?.AutenticationType == AutenticationTypeEnum.AUTH2)
+			{
+				return await SendMailAuth2(from, toMails, subject, body, attach, config, uid);
+			}
+			else
+			{
+				if (config == null)
+				{
+					config = Config;
+				}
+				return SendMailBasic(from, toMails, subject, body, attach, config, uid);
+			}
+		}
 		static async Task<bool> SendMailAuth2(string from,
 			List<string> toMails,
 			string subject,
@@ -200,27 +222,7 @@ namespace CAPA_DATOS.Services
 				return false;
 			}
 		}
-		public async static Task<bool> SendMail(string from,
-		   List<string> toMails,
-		   string subject,
-		   string body,
-		   List<ModelFiles>? attach,
-		   string? uid,
-		   MailConfig? config)
-		{
-			if (config?.AutenticationType == AutenticationTypeEnum.AUTH2)
-			{
-				return await SendMailAuth2(from, toMails, subject, body, attach, config, uid);
-			}
-			else
-			{
-				if (config == null)
-				{
-					config = new MailConfig() { HOST = HOST, PASSWORD = PASSWORD, USERNAME = USERNAME };
-				}
-				return SendMailBasic(from, toMails, subject, body, attach, config, uid);
-			}
-		}
+		
 	}
 
 }
