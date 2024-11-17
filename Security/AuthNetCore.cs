@@ -185,7 +185,7 @@ namespace API.Controllers
 				return new UserModel()
 				{
 					success = false,
-					message = "Usuario y contraseña son requeridos.",
+					message = "Usuario es requeridos.",
 					status = 500
 				};
 			}
