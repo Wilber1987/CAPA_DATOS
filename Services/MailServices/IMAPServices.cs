@@ -9,6 +9,7 @@ using MailKit.Security;
 using MailKit;
 using MimeKit;
 using MailKit.Search;
+using Microsoft.Identity.Client;
 
 namespace CAPA_DATOS.Services;
 public class MailConfig
@@ -23,6 +24,7 @@ public class MailConfig
     public string? CLIENT { get; set; }
     public string? OBJECTID { get; set; }
     public string? CLIENT_SECRET { get; set; }
+    public string? APIKEY { get; set; }
 }
 
 public enum HostServices
@@ -32,7 +34,7 @@ public enum HostServices
 
 public enum AutenticationTypeEnum
 {
-    AUTH2, BASIC
+    AUTH2, BASIC, ZOHO
 }
 public class IMAPServices
 {

@@ -7,10 +7,13 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Identity.Client;
 using MimeKit;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace CAPA_DATOS.Services
 {
@@ -18,10 +21,213 @@ namespace CAPA_DATOS.Services
 	{
 		const string USERNAME = "wdevexp@outlook.com";
 		const string PASSWORD = "%WtestDev2023%1";
-		//const string USERNAME = "amejia@ximtechnology.onmicrosoft.com";
-		//const string PASSWORD = "%3e2w1qazsX";
 		const string HOST = "smtp-mail.outlook.com";
 		const int PORT = 587;
+		const string ZOHO_API_URL = "https://api.zeptomail.com/v1.1/email";
+
+		public static bool SendMailWithZohoAPI(string from, List<string> toMails, string subject, string body, MailConfig mailConfig)
+		{
+			var message = new MimeMessage();
+			message.From.Add(new MailboxAddress("noreply", "noreply@cca.edu.ni"));
+			message.To.Add(new MailboxAddress("Kevin Benavides Castro", "alderhernandez@gmail.com"));
+			message.Subject = "Test Email";
+			message.Body = new TextPart("html")
+			{
+				Text = "Test email sent successfully."
+			};
+			var client = new MailKit.Net.Smtp.SmtpClient();
+			try
+			{
+				client.SslProtocols = System.Security.Authentication.SslProtocols.Tls12;
+				client.Connect("smtp.zeptomail.com", 587, false);
+				client.Authenticate("emailapikey", "wSsVR61/qx72Da10nzSkIb85ml9cB1qlRx8pjgSl4yetHqzG8sdpl0XGAw/0G/gWEGZhRWEQrbh4mh1VhzQI2ot/mAoFXiiF9mqRe1U4J3x17qnvhDzIXmtZlBaAJIIJwApun2FoGsgr+g==");
+				client.Send(message);
+				client.Disconnect(true);
+			}
+			catch (Exception e)
+			{
+				Console.Write(e.Message);
+				return true;
+			}
+			return true;
+
+		}
+
+		public async static Task<bool> SendMailWithZohoAPIatach(string from, List<string> toMails, string subject, string body, MailConfig mailConfig, string attachmentPath)
+		{
+			// Configuración de protocolo de seguridad
+			System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+
+			// URL base de Zoho
+			var baseAddress = "https://mail.zoho.com/api/accounts/123456789/messages"; // Cambiar 123456789 por tu account ID real
+
+			// Configuración de la solicitud HTTP
+			var http = (HttpWebRequest)WebRequest.Create(new Uri(baseAddress));
+			http.Accept = "application/json";
+			http.ContentType = "application/json";
+			http.Method = "POST";
+			http.PreAuthenticate = true;
+			http.Headers.Add("Authorization", "Zoho-enczapikey wSsVR61/qx72Da10nzSkIb85ml9cB1qlRx8pjgSl4yetHqzG8sdpl0XGAw/0G/gWEGZhRWEQrbh4mh1VhzQI2ot/mAoFXiiF9mqRe1U4J3x17qnvhDzIXmtZlBaAJIIJwApun2FoGsgr+g=="); // Reemplaza ***** con tu token OAuth válido
+
+			// Lee el archivo adjunto
+			string fileName =  Path.GetFileName(attachmentPath);
+			byte[] fileBytes = File.ReadAllBytes(attachmentPath);
+			string base64File = Convert.ToBase64String(fileBytes);
+
+			// Construcción del JSON para la solicitud
+			var parsedContent = new JObject
+			{
+				["fromAddress"] = from,
+				["toAddress"] = string.Join(",", toMails), // Convierte la lista de destinatarios en una cadena separada por comas
+				["subject"] = subject,
+				["content"] = body,
+				["attachments"] = new JArray
+		{
+			new JObject
+			{
+				["storeName"] = "Base64", // Representación Base64 del archivo
+                ["attachmentPath"] = attachmentPath, // Ruta local del archivo
+                ["attachmentName"] = fileName // Nombre del archivo
+            }
+		}
+			};
+
+			Console.WriteLine(parsedContent.ToString());
+
+			// Codifica el JSON y escribe en la solicitud
+			ASCIIEncoding encoding = new ASCIIEncoding();
+			Byte[] bytes = encoding.GetBytes(parsedContent.ToString());
+
+			using (Stream newStream = http.GetRequestStream())
+			{
+				newStream.Write(bytes, 0, bytes.Length);
+			}
+
+			// Envía la solicitud y obtiene la respuesta
+			try
+			{
+				var response = http.GetResponse();
+				using (var stream = response.GetResponseStream())
+				{
+					var sr = new StreamReader(stream);
+					var content = sr.ReadToEnd();
+					Console.WriteLine(content);
+					return true;
+				}
+			}
+			catch (WebException ex)
+			{
+				using (var stream = ex.Response.GetResponseStream())
+				{
+					var sr = new StreamReader(stream);
+					Console.WriteLine("Error: " + sr.ReadToEnd());
+				}
+				return false;
+			}
+		}
+
+
+		public static bool SendMailWithZohoAPI2(string from, List<string> toMails, string subject, string body, MailConfig mailConfig)
+		{
+
+			System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+			var baseAddress = "https://api.zeptomail.com/v1.1/email";
+
+			var http = (HttpWebRequest)WebRequest.Create(new Uri(baseAddress));
+			http.Accept = "application/json";
+			http.ContentType = "application/json";
+			http.Method = "POST";
+			http.PreAuthenticate = true;
+			http.Headers.Add("Authorization", "Zoho-enczapikey wSsVR61/qx72Da10nzSkIb85ml9cB1qlRx8pjgSl4yetHqzG8sdpl0XGAw/0G/gWEGZhRWEQrbh4mh1VhzQI2ot/mAoFXiiF9mqRe1U4J3x17qnvhDzIXmtZlBaAJIIJwApun2FoGsgr+g==");
+			JObject parsedContent = JObject.Parse("{'from': { 'address': 'noreply@cca.edu.ni'},'to': [{'email_address': {'address': '" + toMails[0] + "','name': 'cca'}}],'subject':'Actualizaci&oacuten de datos','htmlbody':'" + body + "'}");
+			Console.WriteLine(parsedContent.ToString());
+			ASCIIEncoding encoding = new ASCIIEncoding();
+			Byte[] bytes = encoding.GetBytes(parsedContent.ToString());
+
+			Stream newStream = http.GetRequestStream();
+			newStream.Write(bytes, 0, bytes.Length);
+			newStream.Close();
+
+			var response = http.GetResponse();
+
+			var stream = response.GetResponseStream();
+			var sr = new StreamReader(stream);
+			var content = sr.ReadToEnd();
+			Console.WriteLine(content);
+			return false;
+
+			/*System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+			var baseAddress = "https://api.zeptomail.com/v1.1/email";
+
+			var http = (HttpWebRequest)WebRequest.Create(new Uri(baseAddress));
+			http.Accept = "application/json";
+			http.ContentType = "application/json; charset=UTF-8"; // Tipo de contenido en UTF-8
+			http.Method = "POST";
+			http.PreAuthenticate = true;
+			http.Headers.Add("Authorization", mailConfig.APIKEY);
+
+			// Agregar Content-Transfer-Encoding
+			http.Headers.Add("Content-Transfer-Encoding", "quoted-printable");
+
+			// Construir la lista de destinatarios con el campo `name` vacío en `email_address`
+			var toAddresses = new JArray();
+			foreach (var email in toMails)
+			{
+				toAddresses.Add(new JObject
+				{
+					{ "email_address", new JObject { { "address", email }, { "name", "" } } }
+				});
+			}
+
+			byte[] encodedBody = Encoding.UTF8.GetBytes(body); 
+			string encodedBodyString = Encoding.UTF8.GetString(encodedBody);			
+			JObject parsedContent = new JObject
+			{
+				{ "from", new JObject { { "address", "noreply@cca.edu.ni" }, { "name", "PORTAL CCA" } } },
+				{ "to", toAddresses },
+				{ "subject", subject },
+				{ "htmlbody", encodedBodyString } 
+			};
+
+			Console.WriteLine(parsedContent.ToString());
+			ASCIIEncoding encoding = new ASCIIEncoding();
+			Byte[] bytes = encoding.GetBytes(parsedContent.ToString());
+
+			using (Stream newStream = http.GetRequestStream())
+			{
+				newStream.Write(bytes, 0, bytes.Length);
+			}
+
+			try
+			{
+				using (var response = (HttpWebResponse)await http.GetResponseAsync())
+				{
+					using (var stream = response.GetResponseStream())
+					{
+						using (var sr = new StreamReader(stream))
+						{
+							var content = await sr.ReadToEndAsync();
+							Console.WriteLine(content);
+						}
+					}
+				}
+				return true;
+			}
+			catch (WebException ex)
+			{
+				using (var responseStream = ex.Response.GetResponseStream())
+				{
+					using (var reader = new StreamReader(responseStream))
+					{
+						string errorResponse = await reader.ReadToEndAsync();
+						Console.WriteLine($"Error enviando correo: {errorResponse}");
+					}
+				}
+				return false;
+			}*/
+		}
+
+
 		static async Task<bool> SendMailAuth2(string from,
 			List<string> toMails,
 			string subject,
@@ -105,6 +311,7 @@ namespace CAPA_DATOS.Services
 				return false;
 			}
 		}
+
 		public static string? obtainMail(string inputString)
 		{
 			if (IsValidEmail(inputString))
@@ -129,6 +336,7 @@ namespace CAPA_DATOS.Services
 				return null;
 			}
 		}
+
 		static bool IsValidEmail(string email)
 		{
 			try
@@ -153,7 +361,7 @@ namespace CAPA_DATOS.Services
 			{
 				//var templatePage = Path.Combine(System.IO.Path.GetFullPath("../UI/Pages/Mails"), path);
 				MailMessage correo = new MailMessage();
-				correo.From = new MailAddress(config.USERNAME, "PORTAL CCA", System.Text.Encoding.UTF8);//Correo de salida
+				correo.From = new MailAddress(from ?? config.USERNAME, "PORTAL CCA", System.Text.Encoding.UTF8);//Correo de salida
 				if (toMails == null || toMails.Count == 0)
 				{
 					return false;
@@ -168,11 +376,14 @@ namespace CAPA_DATOS.Services
 				{
 					foreach (var files in attach)
 					{
+						/*Attachment AttachFile = new System.Net.Mail.Attachment("c:/xampp/factura.pdf");
+						correo.Attachments.Add(AttachFile);*/
 						Attachment AttachFile = new Attachment(files.Value);
 						correo.Attachments.Add(AttachFile);
+
 					}
 				}
-				
+
 				correo.Subject = subject; //Asunto
 				correo.Body = from + ": " + body;//ContractService.RenderTemplate(templatePage, model);
 				correo.IsBodyHtml = true;
@@ -194,12 +405,17 @@ namespace CAPA_DATOS.Services
 				smtp.Send(correo);
 				return true;
 			}
-			catch (Exception ex)
+			catch (WebException ex)
 			{
-				LoggerServices.AddMessageError($"error enviando correo desde {config.HOST} {config.USERNAME}", ex);
+				using (var stream = ex.Response.GetResponseStream())
+				{
+					var sr = new StreamReader(stream);
+					Console.WriteLine("Error: " + sr.ReadToEnd());
+				}
 				return false;
 			}
 		}
+
 		public async static Task<bool> SendMail(string from,
 		   List<string> toMails,
 		   string subject,
