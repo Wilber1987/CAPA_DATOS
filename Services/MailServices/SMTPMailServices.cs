@@ -361,7 +361,7 @@ namespace CAPA_DATOS.Services
 			{
 				//var templatePage = Path.Combine(System.IO.Path.GetFullPath("../UI/Pages/Mails"), path);
 				MailMessage correo = new MailMessage();
-				correo.From = new MailAddress(from ?? config.USERNAME, "PORTAL CCA", System.Text.Encoding.UTF8);//Correo de salida
+				correo.From = new MailAddress(from == "" ?  config.USERNAME : from, "PORTAL CCA", Encoding.UTF8);//Correo de salida
 				if (toMails == null || toMails.Count == 0)
 				{
 					return false;
@@ -396,8 +396,9 @@ namespace CAPA_DATOS.Services
 				{
 					UseDefaultCredentials = false,
 					Host = config.HOST ?? "",
-					Port = PORT, //Puerto de salida 
-					Credentials = new NetworkCredential(config.USERNAME, config.PASSWORD)//Cuenta de correo
+					Port = PORT, 
+					Credentials = new NetworkCredential(config.USERNAME, config.PASSWORD),
+					Timeout = 15000
 				};
 				ServicePointManager.ServerCertificateValidationCallback +=
 				  (sender, cert, chain, sslPolicyErrors) => true;
