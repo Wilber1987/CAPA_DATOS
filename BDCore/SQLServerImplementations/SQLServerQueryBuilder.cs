@@ -247,6 +247,10 @@ namespace CAPA_DATOS.BDCore.Implementations
 					throw new ArgumentException($"Tipo de datos no soportado: {dataType}");
 			}
 
+			if (oProperty == null)
+			{
+				return new SqlParameter(name, sqlDbType) { Value = value };
+			}
 			// Verificar si la propiedad tiene el atributo JsonProp
 			JsonProp? jsonPropAttribute = (JsonProp?)Attribute.GetCustomAttribute(oProperty, typeof(JsonProp));
 			if (jsonPropAttribute != null)
