@@ -102,8 +102,15 @@ public abstract class EntityClass : TransactionalClass
 	// Método para encontrar una entidad que cumpla ciertas condiciones
 	public T? Find<T>(params FilterData[]? where_condition)
 	{
+		if (filterData!.Count == 0)
+		{			
+			filterData = where_condition?.ToList();
+		}else 
+		{
+			filterData.AddRange(where_condition?.ToList() ?? []);
+		}
 		// Establece los filtros de datos de la entidad
-		filterData = where_condition?.ToList();
+		
 		// Intenta obtener la entidad utilizando los filtros establecidos
 		var Data = SqlADOConexion.SQLM != null ? SqlADOConexion.SQLM.TakeObject<T>(this) : default(T);
 		// Retorna la entidad encontrada o null si no se encuentra
