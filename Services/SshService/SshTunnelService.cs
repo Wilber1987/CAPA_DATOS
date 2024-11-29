@@ -9,8 +9,7 @@ public class SshTunnelService
     private readonly IConfigurationRoot _configuration;
 
     public SshTunnelService(IConfigurationRoot configurationRoot)
-    {
-        // Cargar las configuraciones automáticamente al crear la instancia
+    {        
         _configuration = configurationRoot;
     }
 
