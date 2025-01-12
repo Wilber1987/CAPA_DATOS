@@ -85,7 +85,7 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 			// Obtener la propiedad de límite de filtro
 			FilterData? filterLimit = Inst.filterData?.Find(f =>
 					f.FilterType?.ToLower().Contains("limit") == true);
-					// Obtener la propiedad de límite de filtro
+			// Obtener la propiedad de límite de filtro
 			FilterData? filterPaginated = Inst.filterData?.Find(f =>
 					f.FilterType?.ToLower().Contains("paginated") == true);
 
@@ -167,10 +167,11 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 			else
 			{
 				if (EntityProp?.DATA_TYPE.ToLower() == "date")
-				{					
+				{
 					Columns = Columns + $"CASE WHEN {AtributeName} < '1753-01-01' THEN CAST('1990-01-01 00:00:00' AS DATETIME) ELSE CAST(CONCAT({AtributeName}, ' 00:00:00') AS DATETIME) END AS {AtributeName},";
-				}else if (EntityProp?.DATA_TYPE.ToLower() == "bit")
-				{					
+				}
+				else if (EntityProp?.DATA_TYPE.ToLower() == "bit")
+				{
 					Columns = Columns + $"CASE WHEN {AtributeName} = '1' THEN 'true' ELSE 'false' END AS {AtributeName},";
 				}
 				else
@@ -178,7 +179,7 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 					Columns = Columns + AtributeName + ",";
 				}
 
-		
+
 			}
 			var AtributeValue = oProperty.GetValue(Inst);
 			if (AtributeValue != null && jsonProp == null)
@@ -254,6 +255,9 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 					break;
 				case "date":
 					sqlDbType = MySqlDbType.Date;
+					break;
+				case "tinyint":					
+					sqlDbType = value is byte ? MySqlDbType.UByte : MySqlDbType.Byte;
 					break;
 				default:
 					// Lanzar una excepción si el tipo de datos no es compatible
