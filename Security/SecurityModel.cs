@@ -130,10 +130,15 @@ namespace CAPA_DATOS.Security
 		{
 			try
 			{
+				var userF = new Security_Users{Id_User = Id_User}.Find<Security_Users>();
 				this.BeginGlobalTransaction();
 				if (this.Password != null)
 				{
 					this.Password = EncrypterServices.Encrypt(this.Password);
+					if (userF != null && userF.Password_Expiration_Date != null)
+					{
+						this.Password_Expiration_Date = DateTime.Now.AddDays(30);
+					}					
 				}
 				if (this.Id_User == null)
 				{
