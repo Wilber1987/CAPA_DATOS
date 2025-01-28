@@ -160,7 +160,7 @@ namespace API.Controllers
 		public static bool HavePermission(string permission, string seassonKey)
 		{
 			var security_User = User(seassonKey).UserData;
-			var isAdmin = security_User?.Security_Users_Roles?.Where(r => RoleHavePermission(Permissions.ADMIN_PANEL_ACCESS.ToString(), r)?.Count != 0).ToList();
+			var isAdmin = security_User?.Security_Users_Roles?.Where(r => RoleHavePermission(Permissions.ADMIN_ACCESS.ToString(), r)?.Count != 0).ToList();
 			if (isAdmin != null && isAdmin?.Count != 0) return true;
 			if (Authenticate(seassonKey))
 			{
