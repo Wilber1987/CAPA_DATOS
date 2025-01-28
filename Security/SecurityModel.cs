@@ -197,7 +197,7 @@ namespace CAPA_DATOS.Security
 		internal bool IsAdmin()
 		{
 			return Security_Users_Roles?.Find(r => r.Security_Role?.Security_Permissions_Roles?.Find(p =>
-			 p.Security_Permissions.Descripcion.Equals(Permissions.ADMIN_PANEL_ACCESS.ToString())
+			 p.Security_Permissions.Descripcion.Equals(Permissions.ADMIN_ACCESS.ToString())
 			) != null) != null;
 		}
 		internal object RecoveryPassword()
