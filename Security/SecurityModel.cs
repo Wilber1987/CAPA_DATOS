@@ -130,49 +130,8 @@ namespace CAPA_DATOS.Security
 		{
 			try
 			{
-				var userF = new Security_Users{Id_User = Id_User}.Find<Security_Users>();
 				this.BeginGlobalTransaction();
-				if (this.Password != null)
-				{
-					this.Password = EncrypterServices.Encrypt(this.Password);
-					if (userF != null && userF.Password_Expiration_Date != null)
-					{
-						this.Password_Expiration_Date = DateTime.Now.AddDays(30);
-					}					
-				}
-				if (this.Id_User == null)
-				{
-					if (new Security_Users() { Mail = this.Mail }.Exists<Security_Users>())
-					{
-						throw new Exception("Correo en uso");
-					}
-					var user = Save();
-					if (tbl_Profile != null)
-					{
-						tbl_Profile.IdUser = ((Security_Users?)user)?.Id_User;
-						tbl_Profile.Save();
-					}
-
-				}
-				else
-				{
-					if (this.Estado == null)
-					{
-						this.Estado = "ACTIVO";
-					}
-					this.Update("Id_User");
-				}
-				if (this.Security_Users_Roles != null)
-				{
-					Security_Users_Roles IdI = new Security_Users_Roles();
-					IdI.Id_User = this.Id_User;
-					IdI.Delete();
-					foreach (Security_Users_Roles obj in this.Security_Users_Roles)
-					{
-						obj.Id_User = this.Id_User;
-						obj.Save();
-					}
-				}
+				DoSaveUser(tbl_Profile);
 				this.CommitGlobalTransaction();
 				return this;
 			}
@@ -181,6 +140,54 @@ namespace CAPA_DATOS.Security
 				this.RollBackGlobalTransaction();
 				throw;
 			}
+		}
+
+		public object DoSaveUser(Tbl_Profile? tbl_Profile)
+		{
+			var userF = new Security_Users { Id_User = Id_User }.Find<Security_Users>();
+
+			if (this.Password != null)
+			{
+				this.Password = EncrypterServices.Encrypt(this.Password);
+				if (userF != null && userF.Password_Expiration_Date != null)
+				{
+					this.Password_Expiration_Date = DateTime.Now.AddDays(30);
+				}
+			}
+			if (this.Id_User == null)
+			{
+				if (new Security_Users() { Mail = this.Mail }.Exists<Security_Users>())
+				{
+					throw new Exception("Correo en uso");
+				}
+				var user = Save();
+				if (tbl_Profile != null)
+				{
+					tbl_Profile.IdUser = ((Security_Users?)user)?.Id_User;
+					tbl_Profile.Save();
+				}
+
+			}
+			else
+			{
+				if (this.Estado == null)
+				{
+					this.Estado = "ACTIVO";
+				}
+				this.Update("Id_User");
+			}
+			if (this.Security_Users_Roles != null)
+			{
+				Security_Users_Roles IdI = new Security_Users_Roles();
+				IdI.Id_User = this.Id_User;
+				IdI.Delete();
+				foreach (Security_Users_Roles obj in this.Security_Users_Roles)
+				{
+					obj.Id_User = this.Id_User;
+					obj.Save();
+				}
+			}
+			return this;
 		}
 
 		public object GetUsers()
