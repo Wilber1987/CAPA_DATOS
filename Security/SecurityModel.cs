@@ -9,6 +9,7 @@ namespace CAPA_DATOS.Security
 		[PrimaryKey(Identity = true)]
 		public int? Id_Role { get; set; }
 		public string? Descripcion { get; set; }
+		public string? Firma_aprov { get; set; }
 		public string? Estado { get; set; }
 		[OneToMany(TableName = "Security_Permissions_Roles", KeyColumn = "Id_Role", ForeignKeyColumn = "Id_Role")]
 		public List<Security_Permissions_Roles>? Security_Permissions_Roles { get; set; }
@@ -67,7 +68,7 @@ namespace CAPA_DATOS.Security
 		public DateTime? Token_Date { get; set; }
 		public DateTime? Token_Expiration_Date { get; set; }
 		public DateTime? Password_Expiration_Date { get; set; }
-		
+
 		[OneToMany(TableName = "Security_Users_Roles", KeyColumn = "Id_User", ForeignKeyColumn = "Id_User")]
 		public List<Security_Users_Roles>? Security_Users_Roles { get; set; }
 
@@ -130,43 +131,7 @@ namespace CAPA_DATOS.Security
 			try
 			{
 				this.BeginGlobalTransaction();
-				if (this.Password != null)
-				{
-					this.Password = EncrypterServices.Encrypt(this.Password);
-				}
-				if (this.Id_User == null)
-				{
-					if (new Security_Users() { Mail = this.Mail }.Exists<Security_Users>())
-					{
-						throw new Exception("Correo en uso");
-					}
-					var user = Save();
-					if (tbl_Profile != null)
-					{
-						tbl_Profile.IdUser = ((Security_Users?)user)?.Id_User;
-						tbl_Profile.Save();
-					}
-
-				}
-				else
-				{
-					if (this.Estado == null)
-					{
-						this.Estado = "ACTIVO";
-					}
-					this.Update("Id_User");
-				}
-				if (this.Security_Users_Roles != null)
-				{
-					Security_Users_Roles IdI = new Security_Users_Roles();
-					IdI.Id_User = this.Id_User;
-					IdI.Delete();
-					foreach (Security_Users_Roles obj in this.Security_Users_Roles)
-					{
-						obj.Id_User = this.Id_User;
-						obj.Save();
-					}
-				}
+				DoSaveUser(tbl_Profile);
 				this.CommitGlobalTransaction();
 				return this;
 			}
@@ -175,6 +140,58 @@ namespace CAPA_DATOS.Security
 				this.RollBackGlobalTransaction();
 				throw;
 			}
+		}
+
+		public object DoSaveUser(Tbl_Profile? tbl_Profile)
+		{
+			Security_Users? userF = null;
+			if (Id_User != null)
+			{
+				userF = new Security_Users { Id_User = Id_User }.Find<Security_Users>();
+			}
+
+			if (this.Password != null)
+			{
+				this.Password = EncrypterServices.Encrypt(this.Password);
+				if (userF != null && userF.Password_Expiration_Date != null)
+				{
+					this.Password_Expiration_Date = DateTime.Now.AddDays(30);
+				}
+			}
+			if (this.Id_User == null)
+			{
+				if (new Security_Users() { Mail = this.Mail }.Exists<Security_Users>())
+				{
+					throw new Exception("Correo en uso");
+				}
+				var user = Save();
+				if (tbl_Profile != null)
+				{
+					tbl_Profile.IdUser = ((Security_Users?)user)?.Id_User;
+					tbl_Profile.Save();
+				}
+
+			}
+			else
+			{
+				if (this.Estado == null)
+				{
+					this.Estado = "ACTIVO";
+				}
+				this.Update("Id_User");
+			}
+			if (this.Security_Users_Roles != null)
+			{
+				Security_Users_Roles IdI = new Security_Users_Roles();
+				IdI.Id_User = this.Id_User;
+				IdI.Delete();
+				foreach (Security_Users_Roles obj in this.Security_Users_Roles)
+				{
+					obj.Id_User = this.Id_User;
+					obj.Save();
+				}
+			}
+			return this;
 		}
 
 		public object GetUsers()

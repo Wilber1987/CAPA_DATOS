@@ -20,7 +20,7 @@ namespace API.Controllers
 		{
 			return true;
 		}
-		static public object loginIN(string? mail, string? password, string idetify)
+		static public UserModel loginIN(string? mail, string? password, string idetify)
 		{
 			if (mail == null || mail.Equals("") || password == null || password.Equals(""))
 				return new UserModel()
