@@ -12,6 +12,11 @@ public static class NumberUtility
 		//primer parametro es la cantidad en string
 		//segundo parametro es si queremos que sea mayuscula
 		//tercer parametro la moneda
+		if (numberAsString == null)
+		{
+			return "";
+			
+		}
 		return oMoneda.Convertir(isMoney
 			? Math.Round((decimal)numberAsString, 2).ToString("0.00")
 			: Math.Round((decimal)numberAsString, 2).ToString(), false, currency);
@@ -119,33 +124,33 @@ public static class NumberUtility
 			.Replace(",", "|").Replace(".", ",").Replace("|", "."); ;
 	}
 	public static string ObtenerEnumeracion(int numero)
-    {
+	{
 		if (numero == 0)
 		{
 			numero = 1;
 		}
-        if (numero < 1 || numero > 30)
-            throw new ArgumentOutOfRangeException("El número debe estar entre 1 y 30");
+		if (numero < 1 || numero > 30)
+			throw new ArgumentOutOfRangeException("El número debe estar entre 1 y 30");
 
-        string[] unidades = { "primer", "segundo", "tercer", "cuarto", "quinto", "sexto", "séptimo", "octavo", "noveno", "décimo" };
-        string[] decenas = { "décimo", "vigésimo", "trigésimo" };
+		string[] unidades = { "primer", "segundo", "tercer", "cuarto", "quinto", "sexto", "séptimo", "octavo", "noveno", "décimo" };
+		string[] decenas = { "décimo", "vigésimo", "trigésimo" };
 
-        if (numero <= 10)
-        {
-            return unidades[numero - 1];
-        }
-        else if (numero <= 20)
-        {
-            return "décimo " + unidades[numero - 11];
-        }
-        else if (numero <= 30)
-        {
-            return "vigésimo " + unidades[numero - 21];
-        }
+		if (numero <= 10)
+		{
+			return unidades[numero - 1];
+		}
+		else if (numero <= 20)
+		{
+			return "décimo " + unidades[numero - 11];
+		}
+		else if (numero <= 30)
+		{
+			return "vigésimo " + unidades[numero - 21];
+		}
 
-        // Solo hasta el número 30, así que no es necesario manejar más casos.
-        return string.Empty;
-    }
+		// Solo hasta el número 30, así que no es necesario manejar más casos.
+		return string.Empty;
+	}
 
 }
 
