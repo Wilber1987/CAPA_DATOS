@@ -68,7 +68,7 @@ namespace CAPA_DATOS.Security
 		public DateTime? Token_Date { get; set; }
 		public DateTime? Token_Expiration_Date { get; set; }
 		public DateTime? Password_Expiration_Date { get; set; }
-		
+
 		[OneToMany(TableName = "Security_Users_Roles", KeyColumn = "Id_User", ForeignKeyColumn = "Id_User")]
 		public List<Security_Users_Roles>? Security_Users_Roles { get; set; }
 
@@ -144,7 +144,11 @@ namespace CAPA_DATOS.Security
 
 		public object DoSaveUser(Tbl_Profile? tbl_Profile)
 		{
-			var userF = new Security_Users { Id_User = Id_User }.Find<Security_Users>();
+			Security_Users? userF = null;
+			if (Id_User != null)
+			{
+				userF = new Security_Users { Id_User = Id_User }.Find<Security_Users>();
+			}
 
 			if (this.Password != null)
 			{
