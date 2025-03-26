@@ -132,7 +132,7 @@ public static class NumberUtility
 		if (numero < 1 || numero > 30)
 			throw new ArgumentOutOfRangeException("El número debe estar entre 1 y 30");
 
-		string[] unidades = { "primer grado", "segundo grado", "tercer grado", "cuarto grado", "quinto grado", "sexto grado", "séptimo grado", "octavo grado", "noveno grado", "décimo grado" };
+		string[] unidades = { "primer grado", "segundo grado", "tercer grado", "cuarto grado", "quinto grado", "sexto grado", "séptimo grado", "octavo grado", "noveno grado", "décimo grado", "undécimo grado" };
 		string[] decenas = { "décimo", "vigésimo", "trigésimo" };
 		string[] especiales = { "undécimo", "duodécimo" }; // Excepciones para 11 y 12 academicos
 
