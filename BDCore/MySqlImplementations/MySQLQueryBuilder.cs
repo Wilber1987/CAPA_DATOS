@@ -275,6 +275,10 @@ namespace CAPA_DATOS.BDCore.MySqlImplementations
 			}
 			else
 			{
+				if (dataType.ToUpper() == "DATE" || dataType.ToUpper() == "DATETIME")
+				{
+					return new MySqlParameter(name, sqlDbType) {Value =  Convert.ToDateTime(value.ToString()).ToString("yyyy-MM-dd")};
+				} 
 				// Crear un parámetro normal si la propiedad no tiene el atributo JsonProp
 				return new MySqlParameter(name, sqlDbType) { Value = value };
 			}
