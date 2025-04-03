@@ -38,6 +38,12 @@ namespace CAPA_NEGOCIO.Util
 			return  fecha.Value.ToString("dddd, d 'del' MMMM 'del' yyyy", new CultureInfo("es-ES"));
 
 		}
+		public static string? GetDateTimeName(DateTime? fecha)
+		{
+			if (fecha == null) return null;
+			return  fecha.Value.ToString("dddd, d 'del' MMMM 'del' yyyy hh:mm", new CultureInfo("es-ES"));
+
+		}
 		public static string? GetDateName()
 		{
 			return  DateTime.Now.ToString("dddd, d 'del' MMMM 'del' yyyy", new CultureInfo("es-ES"));
