@@ -36,7 +36,7 @@ namespace API.Controllers
 					Mail = mail,
 					Password = EncrypterServices.Encrypt(password)
 				}.GetUserData();
-				if (security_User == null) ClearSeason();
+				if (security_User == null) ClearSeason(idetify);
 				if (security_User?.Password_Expiration_Date != null && security_User?.Password_Expiration_Date < DateTime.Now)
 				{
 					return new UserModel()
@@ -66,11 +66,9 @@ namespace API.Controllers
 				};
 			}
 		}
-		static public bool ClearSeason()
+		static public bool ClearSeason(string idetify)
 		{
-			//SqlADOConexion.SQLM = null;
-			//security_User = null;
-			//SeasonServices.ClearSeason(idetify);
+			SeasonServices.ClearSeason(idetify);
 			return true;
 
 		}
