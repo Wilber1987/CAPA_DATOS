@@ -28,6 +28,7 @@ namespace CAPA_DATOS.Services
 				Attach.Value = ExtractBase64(Attach.Value);
 				if (!IsBase64String(Attach.Value))
 				{
+					LoggerServices.AddMessageError("ERROR: FileService.upload", new Exception("Formato incorrecto, base64 invalido"));
 					return new ResponseService()
 					{
 						status = 403,
@@ -48,7 +49,7 @@ namespace CAPA_DATOS.Services
 				}
 				string FileType = GetFileType(MimeType);
 				Guid Uuid = Guid.NewGuid();
-				string FileName = ( Attach?.Name ?? "" ) + Uuid.ToString() + FileType;
+				string FileName =  Uuid.ToString() + FileType;
 				string FileRoute = Ruta + FileName;
 				File.WriteAllBytes(FileRoute, File64);
 				string RutaRelativa = Path.GetRelativePath(Directory.GetCurrentDirectory(), FileRoute);
@@ -70,6 +71,7 @@ namespace CAPA_DATOS.Services
 			}
 			catch (Exception ex)
 			{
+				LoggerServices.AddMessageError("ERROR: FileService.upload", ex);
 				return new ResponseService()
 				{
 					status = 500,

@@ -32,11 +32,29 @@ namespace CAPA_NEGOCIO.Util
 			}
 		}
 
-		public static string? GetMonthName(DateTime? fecha)
+		public static string? GetDateName(DateTime? fecha, Boolean showDay)
 		{
 			if (fecha == null) return null;
-			return  fecha.Value.ToString("dddd, d 'del' MMMM 'del' yyyy", new CultureInfo("es-ES"));
+			if (showDay)
+			{
+				return  fecha.Value.ToString("dddd, d 'del' MMMM 'del' yyyy", new CultureInfo("es-ES"));	
+			}
+			return  fecha.Value.ToString("d 'del' MMMM 'del' yyyy", new CultureInfo("es-ES"));
 
+		}
+		public static string? GetDateTimeName(DateTime? fecha)
+		{
+			if (fecha == null) return null;
+			return  fecha.Value.ToString("dddd, d 'del' MMMM 'del' yyyy hh:mm", new CultureInfo("es-ES"));
+
+		}
+		public static string? GetDateName()
+		{
+			return  DateTime.Now.ToString("dddd, d 'del' MMMM 'del' yyyy", new CultureInfo("es-ES"));
+		}
+		public static string? GetMonthName(DateTime? fecha)
+		{
+			return fecha!.Value.ToString("MMMM", new CultureInfo("es-ES"));
 		}
 
         public static bool IsAfter(DateTime? fecha, int hours)

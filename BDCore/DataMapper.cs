@@ -152,6 +152,10 @@ namespace CAPA_DATOS.BDCore.Abstracts
 				{
 					// Obtiene la información del atributo ManyToOne
 					ManyToOne? manyToOne = (ManyToOne?)Attribute.GetCustomAttribute(manyToOneProp, typeof(ManyToOne));
+					if (manyToOne!.isView)
+					{
+						continue;
+					}
 
 					// Obtiene las propiedades de la clave primaria y externa
 					PropertyInfo? keyColumn = attributeValue.GetType().GetProperty(manyToOne?.KeyColumn);
@@ -160,7 +164,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 					// Si la columna de clave primaria no es nula
 					if (keyColumn != null)
 					{
-						
+
 						// Si el valor de la clave primaria en el objeto relacionado es nulo, inserta el objeto relacionado
 						if (keyColumn?.GetValue(attributeValue) == null)
 						{
@@ -492,7 +496,7 @@ namespace CAPA_DATOS.BDCore.Abstracts
 			{
 				// Si ocurre un error durante el proceso, registra el error y relanza la excepción
 				GDatos?.ReStartData(e);
-			   string cadenaCompleta = string.Join(Environment.NewLine, parameters.Select(p => $"{p.ParameterName} = {p.Value}"));
+				string cadenaCompleta = string.Join(Environment.NewLine, parameters.Select(p => $"{p.ParameterName} = {p.Value}"));
 				LoggerServices.AddMessageError($"ERROR: BuildTable \n\n {Inst.GetType().Name} \n\n {cadenaCompleta} \n {queryString}", e);
 				throw;
 			}

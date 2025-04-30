@@ -416,6 +416,17 @@ public abstract class TransactionalClass
 		}
 		set { Conection = value; }
 	}
+	protected WDataMapper? MDataMapper
+	{
+		get
+		{
+			if (this.Conection != null)
+				return this.Conection;
+			else
+				return Connections.Default;
+		}
+		set { Conection = value; }
+	}
 	internal WDataMapper? GetConnection()
 	{
 		return MTConnection;
