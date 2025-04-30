@@ -39,7 +39,17 @@ namespace CAPA_NEGOCIO.Util
 
 		}
 
-	}
+        public static bool IsAfter(DateTime? fecha, int hours)
+        {
+        	TimeSpan diferencia = DateTime.Now - fecha.GetValueOrDefault();
+			return diferencia.TotalHours >= hours;
+        }
+        public static bool IsBefore(DateTime? fecha, int hours)
+        {
+        	TimeSpan diferencia = DateTime.Now - fecha.GetValueOrDefault();
+			return diferencia.TotalHours < hours;
+        }
+    }
 
 	public static class MigrationDates
 	{
