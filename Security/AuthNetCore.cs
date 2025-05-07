@@ -176,7 +176,7 @@ namespace API.Controllers
 			return r?.Security_Role?.Security_Permissions_Roles?.Where(p => p.Security_Permissions?.Descripcion == permission).ToList();
 		}
 
-		public static UserModel RecoveryPassword(string? mail)
+		public static UserModel RecoveryPassword(string? mail, MailConfig? config)
 		{
 			if (mail == null || mail.Equals(""))
 			{
@@ -192,7 +192,7 @@ namespace API.Controllers
 				var security_User = new Security_Users()
 				{
 					Mail = mail
-				}.RecoveryPassword();
+				}.RecoveryPassword(config);
 				if (security_User != null)
 				{
 					return new UserModel()

@@ -359,13 +359,11 @@ namespace CAPA_DATOS.Services
 		{
 			try
 			{
-				//var templatePage = Path.Combine(System.IO.Path.GetFullPath("../UI/Pages/Mails"), path);
 				MailMessage correo = new MailMessage();
 				correo.From = new MailAddress(from == "" ?  config.USERNAME : from, "PORTAL CCA", Encoding.UTF8);//Correo de salida
 				if (toMails == null || toMails.Count == 0)
 				{
 					return false;
-
 				}
 				foreach (string toMail in toMails)
 				{
@@ -376,14 +374,10 @@ namespace CAPA_DATOS.Services
 				{
 					foreach (var files in attach)
 					{
-						/*Attachment AttachFile = new System.Net.Mail.Attachment("c:/xampp/factura.pdf");
-						correo.Attachments.Add(AttachFile);*/
 						Attachment AttachFile = new Attachment(files.Value);
 						correo.Attachments.Add(AttachFile);
-
 					}
 				}
-
 				correo.Subject = subject; //Asunto
 				correo.Body = from + ": " + body;//ContractService.RenderTemplate(templatePage, model);
 				correo.IsBodyHtml = true;

@@ -21,6 +21,7 @@ public class MailConfig
     public AutenticationTypeEnum? AutenticationType { get; set; }
     //AUTH 2.0
     public string? TENAT { get; set; }
+    public int? PORT { get; set; }
     public string? CLIENT { get; set; }
     public string? OBJECTID { get; set; }
     public string? CLIENT_SECRET { get; set; }
