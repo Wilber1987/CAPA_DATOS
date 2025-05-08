@@ -211,12 +211,12 @@ namespace CAPA_DATOS.Security
 			 p.Security_Permissions.Descripcion.Equals(Permissions.ADMIN_ACCESS.ToString())
 			) != null) != null;
 		}
-		internal object RecoveryPassword(MailConfig? config)
+		internal object RecoveryPassword(MailConfig? config, string? passwordE = null)
 		{
 			Security_Users? user = this.Find<Security_Users>();
 			if (user != null && user.Estado == "ACTIVO")
 			{
-				string password = Guid.NewGuid().ToString();
+				string password = passwordE ?? Guid.NewGuid().ToString();
 				user.Password = EncrypterServices.Encrypt(password);
 				user.Update();
 				_ = SMTPMailServices.SendMail("support@password.recovery",
