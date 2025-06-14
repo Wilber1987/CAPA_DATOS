@@ -242,6 +242,9 @@ namespace CAPA_DATOS.BDCore.Implementations
 				case "date":
 					sqlDbType = SqlDbType.DateTime;
 					break;
+				case "time":
+					sqlDbType = SqlDbType.Time;
+					break;
 				default:
 					//Lanzar una excepción si el tipo de datos no es compatible
 					throw new ArgumentException($"Tipo de datos no soportado: {dataType}");
