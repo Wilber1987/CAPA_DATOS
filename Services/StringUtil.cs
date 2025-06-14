@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System;
 using System.Text;
+using System.Globalization;
 
 namespace CAPA_NEGOCIO.Util
 {
@@ -79,6 +80,22 @@ namespace CAPA_NEGOCIO.Util
 			}
 
 			return password.ToString();
+		}
+
+		public static string NormalizeString(string input)
+		{
+			if (string.IsNullOrEmpty(input)) return "";
+			string normalized = input.Normalize(NormalizationForm.FormD);
+			var sb = new StringBuilder();
+			foreach (char c in normalized)
+			{
+				var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+				if (unicodeCategory != UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(c) || char.IsWhiteSpace(c))
+				{
+					sb.Append(c);
+				}
+			}
+			return sb.ToString().Normalize(NormalizationForm.FormC);
 		}
 	}
 }
