@@ -157,6 +157,12 @@ public static class NumberUtility
 		// Solo hasta el número 30, así que no es necesario manejar más casos.
 		return string.Empty;
 	}
+	public static string ToRoman(int num)
+	{
+		string[] roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+		return roman[num - 1];
+	}
+
 
 }
 
@@ -341,4 +347,5 @@ public class Moneda
 		return n + getMiles(miles);
 	}
 
+	
 }
